@@ -1,0 +1,4 @@
+# Configuration files
+application.yml
+# Database file
+sqlite3.db
