@@ -2,24 +2,24 @@ package service
 
 import (
 	"github.com/imouto1994/yume/internal/model"
-	"github.com/imouto1994/yume/internal/repository"
-	"go.uber.org/zap"
 )
 
-type LibraryService struct {
-	libraryRepository *repository.LibraryRepository
-	logger            *zap.Logger
+type libraryRepository interface {
+	Add(library *model.Library) error
 }
 
-func NewLibraryService(r *repository.LibraryRepository, l *zap.Logger) *LibraryService {
+type LibraryService struct {
+	libraryRepository libraryRepository
+}
+
+func NewLibraryService(r libraryRepository) *LibraryService {
 	return &LibraryService{
 		libraryRepository: r,
-		logger:            l,
 	}
 }
 
-func (s *LibraryService) CreateLibrary() error {
-	return nil
+func (s *LibraryService) CreateLibrary(library *model.Library) error {
+	return s.libraryRepository.Add(library)
 }
 
 func (s *LibraryService) GetLibraries() ([]*model.Library, error) {

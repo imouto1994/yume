@@ -1,10 +1,10 @@
 package model
 
 type Page struct {
-	FileName string
+	FileName  string
 	MediaType string
-	Number int64
-	BookID string
-	Width int64
-	Height int64	
+	Number    int
+	BookID    string
+	Width     int
+	Height    int
 }

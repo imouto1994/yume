@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func RunServer(handler http.Handler, cfg *config.Config, logger *zap.Logger) {
+func RunServer(handler http.Handler, cfg *config.Config) {
 	address := fmt.Sprintf("localhost:%s", cfg.HTTPPort)
 	server := &http.Server{
 		Handler:      handler,
@@ -18,6 +18,6 @@ func RunServer(handler http.Handler, cfg *config.Config, logger *zap.Logger) {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-	logger.Info("Server started successfully", zap.String("address", address))
+	zap.L().Info("Server started successfully", zap.String("address", address))
 	server.ListenAndServe()
 }

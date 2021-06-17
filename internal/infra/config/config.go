@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-playground/validator"
 	"gopkg.in/yaml.v3"
 )
 
@@ -12,7 +11,11 @@ type Config struct {
 	HTTPPort string `yaml:"http_port" validate:"required"`
 }
 
-func Initialize() (*Config, error) {
+type validate interface {
+	Struct(s interface{}) error
+}
+
+func Initialize(v validate) (*Config, error) {
 	// Reading app file config
 	configFile, err := os.Open("./application.yml")
 
@@ -29,7 +32,6 @@ func Initialize() (*Config, error) {
 	}
 
 	// Validate config file
-	v := validator.New()
 	if err = v.Struct(config); err != nil {
 		return nil, fmt.Errorf("Config file is not valid: %w", err)
 	}

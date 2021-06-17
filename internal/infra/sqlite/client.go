@@ -6,5 +6,5 @@ import (
 )
 
 func Connect() (*sqlx.DB, error) {
-	return sqlx.Connect("sqlite3", "./sqlite3.db")
+	return sqlx.Connect("sqlite3", "sqlite3.db")
 }
