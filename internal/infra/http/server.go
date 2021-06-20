@@ -18,6 +18,6 @@ func RunServer(handler http.Handler, cfg *config.Config) {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-	zap.L().Info("Server started successfully", zap.String("address", address))
+	zap.L().Info("server started successfully", zap.String("address", address))
 	server.ListenAndServe()
 }

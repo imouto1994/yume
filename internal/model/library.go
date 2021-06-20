@@ -1,7 +1,7 @@
 package model
 
 type Library struct {
-	ID   int64  `json:"id" db:"id"`
-	Name string `json:"name" db:"name"`
-	Root string `json:"root" db:"root"`
+	ID   int64  `json:"id" db:"ID"`
+	Name string `json:"name" db:"NAME"`
+	Root string `json:"root" db:"ROOT"`
 }

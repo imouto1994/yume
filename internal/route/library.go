@@ -1,6 +1,7 @@
 package route
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -16,8 +17,9 @@ type LibraryHandler struct {
 }
 
 type libraryService interface {
-	CreateLibrary(*model.Library) error
-	GetLibraries() ([]*model.Library, error)
+	CreateLibrary(context.Context, *model.Library) error
+	GetLibraries(context.Context) ([]*model.Library, error)
+	DeleteLibrary(context.Context, string) error
 }
 
 type validate interface {
@@ -36,6 +38,7 @@ func (h *LibraryHandler) InitializeRoutes() http.Handler {
 
 	r.Post("/", h.handleCreateLibrary())
 	r.Get("/", h.handleGetLibraries())
+	r.Delete("/${libraryID}", h.handleDeleteLibrary())
 
 	return r
 }
@@ -51,17 +54,18 @@ func (h *LibraryHandler) handleCreateLibrary() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var body request
+		ctx := r.Context()
 
+		var body request
 		err := json.NewDecoder(r.Body).Decode(&body)
 		if err != nil {
-			httpServer.RespondBadRequest(w, "Request body is not in JSON format", err)
+			httpServer.RespondBadRequest(w, "request body is not in JSON format", err)
 			return
 		}
 
 		err = h.validate.Struct(body)
 		if err != nil {
-			httpServer.RespondBadRequest(w, "Request body is invalid", err)
+			httpServer.RespondBadRequest(w, "request body is invalid", err)
 			return
 		}
 
@@ -70,9 +74,9 @@ func (h *LibraryHandler) handleCreateLibrary() http.HandlerFunc {
 			Root: body.Root,
 		}
 
-		err = h.libraryService.CreateLibrary(newLibrary)
+		err = h.libraryService.CreateLibrary(ctx, newLibrary)
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "Failed to create library", err)
+			httpServer.RespondInternalServerError(w, "failed to create library", err)
 			return
 		}
 
@@ -84,7 +88,40 @@ func (h *LibraryHandler) handleCreateLibrary() http.HandlerFunc {
 }
 
 func (h *LibraryHandler) handleGetLibraries() http.HandlerFunc {
+	type response struct {
+		Libraries []*model.Library `json:"libraries"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Get Libraries"))
+		ctx := r.Context()
+
+		libraries, err := h.libraryService.GetLibraries(ctx)
+		if err != nil {
+			httpServer.RespondInternalServerError(w, "failed to get libraries", err)
+			return
+		}
+
+		resp := response{
+			Libraries: libraries,
+		}
+		httpServer.RespondJSON(w, 200, resp)
+	}
+}
+
+func (h *LibraryHandler) handleDeleteLibrary() http.HandlerFunc {
+	type response struct{}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		libraryID := chi.URLParam(r, "libraryID")
+
+		err := h.libraryService.DeleteLibrary(ctx, libraryID)
+		if err != nil {
+			httpServer.RespondInternalServerError(w, "failed to delete library", err)
+			return
+		}
+
+		resp := response{}
+		httpServer.RespondJSON(w, 200, resp)
 	}
 }

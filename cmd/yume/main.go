@@ -24,7 +24,7 @@ func main() {
 	// Initialize configuration
 	cfg, err := config.Initialize(v)
 	if err != nil {
-		zap.L().Fatal("Failed to load configurations", zap.Error(err))
+		zap.L().Fatal("failed to load configurations", zap.Error(err))
 	}
 
 	// Initialize migration
@@ -32,10 +32,10 @@ func main() {
 
 	// Intitialize database client
 	db, err := sqlite.Connect()
-	defer db.Close()
 	if err != nil {
-		zap.L().Fatal("Failed to establish connection to database", zap.Error(err))
+		zap.L().Fatal("failed to establish connection to database", zap.Error(err))
 	}
+	defer db.Close()
 
 	router := route.CreateRouter(cfg, db, v)
 	httpProtocol.RunServer(router, cfg)

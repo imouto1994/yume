@@ -1,10 +1,31 @@
 package sqlite
 
 import (
+	"context"
+	"database/sql"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func Connect() (*sqlx.DB, error) {
+type DBOps interface {
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}
+
+type Tx interface {
+	DBOps
+	Commit() error
+	Rollback() error
+}
+
+type DB interface {
+	DBOps
+	Close() error
+	Beginx() (*sqlx.Tx, error)
+}
+
+func Connect() (DB, error) {
 	return sqlx.Connect("sqlite3", "sqlite3.db")
 }

@@ -8,17 +8,17 @@ import (
 	"github.com/go-playground/validator"
 
 	"github.com/imouto1994/yume/internal/infra/config"
+	"github.com/imouto1994/yume/internal/infra/sqlite"
 	"github.com/imouto1994/yume/internal/repository"
 	"github.com/imouto1994/yume/internal/service"
-	"github.com/jmoiron/sqlx"
 )
 
-func CreateRouter(cfg *config.Config, db *sqlx.DB, v *validator.Validate) http.Handler {
+func CreateRouter(cfg *config.Config, db sqlite.DB, v *validator.Validate) http.Handler {
 	// Initialize repositories
-	libraryRepository := repository.NewLibraryRepository(db)
+	libraryRepository := repository.NewLibraryRepository()
 
 	// Initialize services
-	libraryService := service.NewLibraryService(libraryRepository)
+	libraryService := service.NewLibraryService(libraryRepository, db)
 
 	// Initialize handlers
 	libraryHandler := NewLibraryHandler(libraryService, v)

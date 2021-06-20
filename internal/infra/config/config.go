@@ -20,7 +20,7 @@ func Initialize(v validate) (*Config, error) {
 	configFile, err := os.Open("./application.yml")
 
 	if err != nil {
-		return nil, fmt.Errorf("Cannot open config file: %w", err)
+		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}
 
 	var config Config
@@ -28,12 +28,12 @@ func Initialize(v validate) (*Config, error) {
 	// Parse config file
 	err = yaml.NewDecoder(configFile).Decode(&config)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot unmarshal config data: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal config data: %w", err)
 	}
 
 	// Validate config file
 	if err = v.Struct(config); err != nil {
-		return nil, fmt.Errorf("Config file is not valid: %w", err)
+		return nil, fmt.Errorf("config file is not valid: %w", err)
 	}
 
 	return &config, nil
