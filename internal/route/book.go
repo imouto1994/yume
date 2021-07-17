@@ -85,6 +85,7 @@ func (h *HandlerBook) handleGetBookPageFile() http.HandlerFunc {
 		pageNumber, err := strconv.Atoi(pageNumberString)
 		if err != nil {
 			httpServer.RespondBadRequest(w, "page number is invalid", err)
+			return
 		}
 
 		err = h.serviceBook.StreamBookPageByID(ctx, h.db, w, bookID, pageNumber)

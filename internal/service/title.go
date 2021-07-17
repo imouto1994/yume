@@ -14,7 +14,7 @@ import (
 
 type ServiceTitle interface {
 	CreateTitle(context.Context, sqlite.DBOps, *model.Title) error
-	GetTitlesByLibrary(context.Context, sqlite.DBOps, string) ([]*model.Title, error)
+	SearchTitles(context.Context, sqlite.DBOps, *model.TitleQuery) ([]*model.Title, error)
 	GetTitleByID(context.Context, sqlite.DBOps, string) (*model.Title, error)
 	StreamTitleCoverByID(context.Context, sqlite.DBOps, io.Writer, string) error
 }
@@ -33,12 +33,12 @@ func (s *serviceTitle) CreateTitle(ctx context.Context, dbOps sqlite.DBOps, titl
 	return s.repositoryTitle.Insert(ctx, dbOps, title)
 }
 
-func (s *serviceTitle) GetTitlesByLibrary(ctx context.Context, dbOps sqlite.DBOps, libraryID string) ([]*model.Title, error) {
-	return nil, nil
+func (s *serviceTitle) SearchTitles(ctx context.Context, dbOps sqlite.DBOps, titleQuery *model.TitleQuery) ([]*model.Title, error) {
+	return s.repositoryTitle.Find(ctx, dbOps, titleQuery)
 }
 
 func (s *serviceTitle) GetTitleByID(ctx context.Context, dbOps sqlite.DBOps, titleID string) (*model.Title, error) {
-	return nil, nil
+	return s.repositoryTitle.FindByID(ctx, dbOps, titleID)
 }
 
 func (s *serviceTitle) StreamTitleCoverByID(ctx context.Context, dbOps sqlite.DBOps, writer io.Writer, titleID string) error {

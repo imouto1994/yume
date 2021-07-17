@@ -10,3 +10,11 @@ type Title struct {
 	CoverWidth  int    `json:"cover_width" db:"COVER_WIDTH"`
 	CoverHeight int    `json:"cover_height" db:"COVER_HEIGHT"`
 }
+
+type TitleQuery struct {
+	LibraryIDs []string
+	Page       int
+	Size       int
+	Sort       string
+	Search     string
+}
