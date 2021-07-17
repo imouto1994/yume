@@ -1,0 +1,8 @@
+project_name: yume
+builds:
+  - env: [CGO_ENABLED=0]
+    goos:
+      - windows
+      - darwin
+    goarch:
+      - amd64
