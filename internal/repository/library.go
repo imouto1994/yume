@@ -2,24 +2,32 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/imouto1994/yume/internal/infra/sqlite"
 	"github.com/imouto1994/yume/internal/model"
 )
 
-type LibraryRepository struct {
+type RepositoryLibrary interface {
+	Insert(context.Context, sqlite.DBOps, *model.Library) error
+	FindAll(context.Context, sqlite.DBOps) ([]*model.Library, error)
+	FindByID(context.Context, sqlite.DBOps, string) (*model.Library, error)
+	Delete(context.Context, sqlite.DBOps, string) error
 }
 
-func NewLibraryRepository() *LibraryRepository {
-	return &LibraryRepository{}
+type repositoryLibrary struct {
 }
 
-func (r *LibraryRepository) Insert(ctx context.Context, db sqlite.DBOps, library *model.Library) error {
+func NewRepositoryLibrary() RepositoryLibrary {
+	return &repositoryLibrary{}
+}
+
+func (r *repositoryLibrary) Insert(ctx context.Context, dbOps sqlite.DBOps, library *model.Library) error {
 	query := "INSERT INTO LIBRARY (NAME, ROOT) " +
 		"VALUES (?, ?)"
 
-	result, err := db.ExecContext(ctx, query, library.Name, library.Root)
+	result, err := dbOps.ExecContext(ctx, query, library.Name, library.Root)
 	if err != nil {
 		return fmt.Errorf("failed to add new row to table LIBRARY: %w", err)
 	}
@@ -34,11 +42,11 @@ func (r *LibraryRepository) Insert(ctx context.Context, db sqlite.DBOps, library
 	return nil
 }
 
-func (r *LibraryRepository) FindAll(ctx context.Context, db sqlite.DBOps) ([]*model.Library, error) {
+func (r *repositoryLibrary) FindAll(ctx context.Context, dbOps sqlite.DBOps) ([]*model.Library, error) {
 	query := "SELECT * FROM LIBRARY"
 	libraries := []*model.Library{}
 
-	err := db.SelectContext(ctx, &libraries, query)
+	err := dbOps.SelectContext(ctx, &libraries, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find all rows from table LIBRARY: %w", err)
 	}
@@ -46,11 +54,27 @@ func (r *LibraryRepository) FindAll(ctx context.Context, db sqlite.DBOps) ([]*mo
 	return libraries, nil
 }
 
-func (r *LibraryRepository) Delete(ctx context.Context, db sqlite.DBOps, libraryID string) error {
+func (r *repositoryLibrary) FindByID(ctx context.Context, dbOps sqlite.DBOps, libraryID string) (*model.Library, error) {
+	query := "SELECT * FROM LIBRARY " +
+		"WHERE ID = ?"
+
+	library := model.Library{}
+
+	err := dbOps.GetContext(ctx, &library, query, libraryID)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("%w: no matched rows with specific ID from table LIBRARY", model.ErrNotFound)
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to find row with specific ID from table LIBRARY: %w", err)
+	}
+
+	return &library, nil
+}
+
+func (r *repositoryLibrary) Delete(ctx context.Context, dbOps sqlite.DBOps, libraryID string) error {
 	query := "DELETE FROM library " +
 		"WHERE ID = ?"
 
-	_, err := db.ExecContext(ctx, query, libraryID)
+	_, err := dbOps.ExecContext(ctx, query, libraryID)
 	if err != nil {
 		return fmt.Errorf("failed to delete row from table LIBRARY: %w", err)
 	}

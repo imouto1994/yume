@@ -15,20 +15,32 @@ import (
 
 func CreateRouter(cfg *config.Config, db sqlite.DB, v *validator.Validate) http.Handler {
 	// Initialize repositories
-	libraryRepository := repository.NewLibraryRepository()
+	repositoryLibrary := repository.NewRepositoryLibrary()
+	repositoryTitle := repository.NewRepositoryTitle()
+	repositoryBook := repository.NewRepositoryBook()
+	repositoryPage := repository.NewRepositoryPage()
 
 	// Initialize services
-	libraryService := service.NewLibraryService(libraryRepository, db)
+	serviceImage := service.NewServiceImage()
+	serviceArchive := service.NewServiceArchive()
+	serviceScanner := service.NewServiceScanner(serviceImage, serviceArchive)
+	serviceBook := service.NewServiceBook(repositoryBook, repositoryPage, serviceArchive, serviceImage)
+	serviceTitle := service.NewServiceTitle(repositoryTitle)
+	serviceLibrary := service.NewServiceLibrary(repositoryLibrary, serviceScanner, serviceTitle, serviceBook)
 
 	// Initialize handlers
-	libraryHandler := NewLibraryHandler(libraryService, v)
+	handlerLibrary := NewHandlerLibrary(db, v, serviceLibrary)
+	hanlderBook := NewHandlerBook(db, serviceBook)
+	handlerTitle := NewHandlerTitle(db, serviceTitle, serviceBook)
 
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Mount("/api/library", libraryHandler.InitializeRoutes())
+	r.Mount("/api/library", handlerLibrary.InitializeRoutes())
+	r.Mount("/api/title", handlerTitle.InitializeRoutes())
+	r.Mount("/api/book", hanlderBook.InitializeRoutes())
 
 	return r
 }

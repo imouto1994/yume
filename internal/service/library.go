@@ -5,34 +5,80 @@ import (
 
 	"github.com/imouto1994/yume/internal/infra/sqlite"
 	"github.com/imouto1994/yume/internal/model"
+	"github.com/imouto1994/yume/internal/repository"
+	"go.uber.org/zap"
 )
 
-type libraryRepository interface {
-	Insert(context.Context, sqlite.DBOps, *model.Library) error
-	FindAll(context.Context, sqlite.DBOps) ([]*model.Library, error)
-	Delete(context.Context, sqlite.DBOps, string) error
+type ServiceLibrary interface {
+	CreateLibrary(context.Context, sqlite.DBOps, *model.Library) error
+	GetLibraries(context.Context, sqlite.DBOps) ([]*model.Library, error)
+	GetLibraryByID(context.Context, sqlite.DBOps, string) (*model.Library, error)
+	DeleteLibrary(context.Context, sqlite.DBOps, string) error
+	ScanLibrary(context.Context, sqlite.DBOps, *model.Library)
 }
 
-type LibraryService struct {
-	libraryRepository libraryRepository
-	db                sqlite.DB
+type serviceLibrary struct {
+	repositoryLibrary repository.RepositoryLibrary
+	serviceScanner    ServiceScanner
+	serviceTitle      ServiceTitle
+	serviceBook       ServiceBook
 }
 
-func NewLibraryService(r libraryRepository, db sqlite.DB) *LibraryService {
-	return &LibraryService{
-		libraryRepository: r,
-		db:                db,
+func NewServiceLibrary(rLibrary repository.RepositoryLibrary, sScanner ServiceScanner, sTitle ServiceTitle, sBook ServiceBook) ServiceLibrary {
+	return &serviceLibrary{
+		repositoryLibrary: rLibrary,
+		serviceScanner:    sScanner,
+		serviceTitle:      sTitle,
+		serviceBook:       sBook,
 	}
 }
 
-func (s *LibraryService) CreateLibrary(ctx context.Context, library *model.Library) error {
-	return s.libraryRepository.Insert(ctx, s.db, library)
+func (s *serviceLibrary) CreateLibrary(ctx context.Context, dbOps sqlite.DBOps, library *model.Library) error {
+	return s.repositoryLibrary.Insert(ctx, dbOps, library)
 }
 
-func (s *LibraryService) GetLibraries(ctx context.Context) ([]*model.Library, error) {
-	return s.libraryRepository.FindAll(ctx, s.db)
+func (s *serviceLibrary) GetLibraries(ctx context.Context, dbOps sqlite.DBOps) ([]*model.Library, error) {
+	return s.repositoryLibrary.FindAll(ctx, dbOps)
 }
 
-func (s *LibraryService) DeleteLibrary(ctx context.Context, libraryID string) error {
-	return s.libraryRepository.Delete(ctx, s.db, libraryID)
+func (s *serviceLibrary) GetLibraryByID(ctx context.Context, dbOps sqlite.DBOps, libraryID string) (*model.Library, error) {
+	return s.repositoryLibrary.FindByID(ctx, dbOps, libraryID)
+}
+
+func (s *serviceLibrary) DeleteLibrary(ctx context.Context, dbOps sqlite.DBOps, libraryID string) error {
+	return s.repositoryLibrary.Delete(ctx, dbOps, libraryID)
+}
+
+func (s *serviceLibrary) ScanLibrary(ctx context.Context, dbOps sqlite.DBOps, library *model.Library) {
+	scanResult, err := s.serviceScanner.ScanLibraryRoot(library.Root)
+	if err != nil {
+		zap.L().Error("failed to scan library", zap.Error(err))
+	}
+
+	// Create title entries
+	for _, title := range scanResult.TitleByTitleName {
+		title.LibraryID = library.ID
+		err = s.serviceTitle.CreateTitle(ctx, dbOps, title)
+		if err != nil {
+			zap.L().Error("failed to create title", zap.Error(err))
+		}
+	}
+
+	for titleName, books := range scanResult.BooksByTitleName {
+		title := scanResult.TitleByTitleName[titleName]
+		titleID := title.ID
+
+		// Create book entries
+		for _, book := range books {
+			book.LibraryID = library.ID
+			book.TitleID = titleID
+			err = s.serviceBook.CreateBook(ctx, dbOps, book)
+			if err != nil {
+				zap.L().Error("failed to create book", zap.Error(err))
+			} else {
+				// Scan book archive and create page entries
+				go s.serviceBook.ScanBook(ctx, dbOps, book)
+			}
+		}
+	}
 }
