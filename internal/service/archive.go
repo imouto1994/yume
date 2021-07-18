@@ -4,7 +4,7 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
-	"sort"
+	"path/filepath"
 
 	"github.com/imouto1994/yume/internal/model"
 )
@@ -12,7 +12,7 @@ import (
 type ServiceArchive interface {
 	GetReader(string) (*zip.ReadCloser, error)
 	GetFilesCount(string) (int, error)
-	StreamFileByIndex(io.Writer, string, int) error
+	StreamFileByIndex(io.Writer, string, int) (string, error)
 }
 
 type serviceArchive struct {
@@ -36,26 +36,23 @@ func (s *serviceArchive) GetFilesCount(archivePath string) (int, error) {
 	return len(reader.File), nil
 }
 
-func (s *serviceArchive) StreamFileByIndex(writer io.Writer, archivePath string, index int) error {
+func (s *serviceArchive) StreamFileByIndex(writer io.Writer, archivePath string, index int) (string, error) {
 	reader, err := zip.OpenReader(archivePath)
 	if err != nil {
-		return fmt.Errorf("failed to open archive: %w", err)
+		return "", fmt.Errorf("failed to open archive: %w", err)
 	}
 	defer reader.Close()
 
 	if reader.File[index] == nil {
-		return fmt.Errorf("%w: file at given index does not exist in the given archive", model.ErrNotFound)
+		return "", fmt.Errorf("%w: file at given index does not exist in the given archive", model.ErrNotFound)
 	}
-	sort.Slice(reader.File, func(i, j int) bool {
-		return reader.File[i].Name < reader.File[j].Name
-	})
 	indexedFileReader, err := reader.File[index].Open()
 	if err != nil {
-		return fmt.Errorf("failed to open file at given index in archive: %w", err)
+		return "", fmt.Errorf("failed to open file at given index in archive: %w", err)
 	}
 	defer indexedFileReader.Close()
 
 	io.Copy(writer, indexedFileReader)
 
-	return nil
+	return filepath.Ext(reader.File[index].Name), nil
 }

@@ -121,7 +121,7 @@ func (h *HandlerTitle) handleGetTitleCoverFile() http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Type", "image/jpeg")
 		w.WriteHeader(200)
 	}
 }

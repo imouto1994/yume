@@ -46,7 +46,7 @@ func (s *serviceTitle) StreamTitleCoverByID(ctx context.Context, dbOps sqlite.DB
 	if err != nil {
 		return fmt.Errorf("failed to find title with given ID: %w", err)
 	}
-	titleCoverPath := filepath.Join(title.URL, "cover.png")
+	titleCoverPath := filepath.Join(title.URL, "poster.jpg")
 	titleCoverFile, err := os.Open(titleCoverPath)
 	if err != nil {
 		return fmt.Errorf("failed to open cover file: %w", err)

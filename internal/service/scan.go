@@ -87,7 +87,7 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 }
 
 func (s *serviceScanner) scanTitleCover(titleFolderPath string) (int, int, error) {
-	titleCoverPath := filepath.Join(titleFolderPath, "cover.png")
+	titleCoverPath := filepath.Join(titleFolderPath, "poster.jpg")
 	titleCoverFile, err := os.Open(titleCoverPath)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to open cover file: %w", err)

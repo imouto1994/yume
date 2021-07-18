@@ -18,7 +18,7 @@ type ServiceBook interface {
 	GetBooksByTitleID(context.Context, sqlite.DBOps, string) ([]*model.Book, error)
 	GetBookByID(context.Context, sqlite.DBOps, string) (*model.Book, error)
 	GetBookPages(context.Context, sqlite.DBOps, string) ([]*model.Page, error)
-	StreamBookPageByID(context.Context, sqlite.DBOps, io.Writer, string, int) error
+	StreamBookPageByID(context.Context, sqlite.DBOps, io.Writer, string, int) (string, error)
 	ScanBook(context.Context, sqlite.DBOps, *model.Book)
 }
 
@@ -102,10 +102,10 @@ func (s *serviceBook) ScanBook(ctx context.Context, dbOps sqlite.DBOps, book *mo
 	}
 }
 
-func (s *serviceBook) StreamBookPageByID(ctx context.Context, dbOps sqlite.DBOps, writer io.Writer, bookID string, pageNumber int) error {
+func (s *serviceBook) StreamBookPageByID(ctx context.Context, dbOps sqlite.DBOps, writer io.Writer, bookID string, pageNumber int) (string, error) {
 	book, err := s.repositoryBook.FindByID(ctx, dbOps, bookID)
 	if err != nil {
-		return fmt.Errorf("failed to find book with given ID: %w", err)
+		return "", fmt.Errorf("failed to find book with given ID: %w", err)
 	}
 
 	return s.serviceArchive.StreamFileByIndex(writer, book.URL, pageNumber)

@@ -88,13 +88,18 @@ func (h *HandlerBook) handleGetBookPageFile() http.HandlerFunc {
 			return
 		}
 
-		err = h.serviceBook.StreamBookPageByID(ctx, h.db, w, bookID, pageNumber)
+		extension, err := h.serviceBook.StreamBookPageByID(ctx, h.db, w, bookID, pageNumber)
 		if err != nil {
 			httpServer.RespondInternalServerError(w, "failed to stream book page", err)
 			return
 		}
 
-		w.Header().Set("Content-Type", "image/png")
+		if extension == ".png" {
+			w.Header().Set("Content-Type", "image/png")
+		} else {
+			w.Header().Set("Content-Type", "image/jpeg")
+		}
+
 		w.WriteHeader(200)
 	}
 }
