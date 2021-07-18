@@ -13,7 +13,7 @@ type RepositoryLibrary interface {
 	Insert(context.Context, sqlite.DBOps, *model.Library) error
 	FindAll(context.Context, sqlite.DBOps) ([]*model.Library, error)
 	FindByID(context.Context, sqlite.DBOps, string) (*model.Library, error)
-	Delete(context.Context, sqlite.DBOps, string) error
+	DeleteByID(context.Context, sqlite.DBOps, string) error
 }
 
 type repositoryLibrary struct {
@@ -29,12 +29,12 @@ func (r *repositoryLibrary) Insert(ctx context.Context, dbOps sqlite.DBOps, libr
 
 	result, err := dbOps.ExecContext(ctx, query, library.Name, library.Root)
 	if err != nil {
-		return fmt.Errorf("failed to add new row to table LIBRARY: %w", err)
+		return fmt.Errorf("rLibrary - failed to add new row to table LIBRARY: %w", err)
 	}
 
 	rowID, err := result.LastInsertId()
 	if err != nil {
-		return fmt.Errorf("failed to get the ID of inserted row: %w", err)
+		return fmt.Errorf("rLibrary - failed to get the ID of inserted row: %w", err)
 	}
 
 	library.ID = rowID
@@ -48,7 +48,7 @@ func (r *repositoryLibrary) FindAll(ctx context.Context, dbOps sqlite.DBOps) ([]
 
 	err := dbOps.SelectContext(ctx, &libraries, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find all rows from table LIBRARY: %w", err)
+		return nil, fmt.Errorf("rLibrary - failed to find all rows from table LIBRARY: %w", err)
 	}
 
 	return libraries, nil
@@ -62,21 +62,21 @@ func (r *repositoryLibrary) FindByID(ctx context.Context, dbOps sqlite.DBOps, li
 
 	err := dbOps.GetContext(ctx, &library, query, libraryID)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("%w: no matched rows with specific ID from table LIBRARY", model.ErrNotFound)
+		return nil, fmt.Errorf("rLibrary - %w: no matched rows with specific ID from table LIBRARY", model.ErrNotFound)
 	} else if err != nil {
-		return nil, fmt.Errorf("failed to find row with specific ID from table LIBRARY: %w", err)
+		return nil, fmt.Errorf("rLibrary - failed to find row with specific ID from table LIBRARY: %w", err)
 	}
 
 	return &library, nil
 }
 
-func (r *repositoryLibrary) Delete(ctx context.Context, dbOps sqlite.DBOps, libraryID string) error {
-	query := "DELETE FROM library " +
+func (r *repositoryLibrary) DeleteByID(ctx context.Context, dbOps sqlite.DBOps, libraryID string) error {
+	query := "DELETE FROM LIBRARY " +
 		"WHERE ID = ?"
 
 	_, err := dbOps.ExecContext(ctx, query, libraryID)
 	if err != nil {
-		return fmt.Errorf("failed to delete row from table LIBRARY: %w", err)
+		return fmt.Errorf("rLibrary - failed to delete row with given ID from table LIBRARY: %w", err)
 	}
 
 	return nil

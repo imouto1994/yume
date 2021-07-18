@@ -23,7 +23,7 @@ type Tx interface {
 type DB interface {
 	DBOps
 	Close() error
-	Beginx() (*sqlx.Tx, error)
+	BeginTxx(context.Context, *sql.TxOptions) (*sqlx.Tx, error)
 }
 
 func Connect() (DB, error) {

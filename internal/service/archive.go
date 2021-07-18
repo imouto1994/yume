@@ -29,7 +29,7 @@ func (s *serviceArchive) GetReader(archivePath string) (*zip.ReadCloser, error) 
 func (s *serviceArchive) GetFilesCount(archivePath string) (int, error) {
 	reader, err := zip.OpenReader(archivePath)
 	if err != nil {
-		return 0, fmt.Errorf("failed to open archive: %w", err)
+		return 0, fmt.Errorf("sArchive - failed to open archive: %w", err)
 	}
 	defer reader.Close()
 
@@ -39,16 +39,16 @@ func (s *serviceArchive) GetFilesCount(archivePath string) (int, error) {
 func (s *serviceArchive) StreamFileByIndex(writer io.Writer, archivePath string, index int) (string, error) {
 	reader, err := zip.OpenReader(archivePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to open archive: %w", err)
+		return "", fmt.Errorf("sArchive - failed to open archive: %w", err)
 	}
 	defer reader.Close()
 
 	if reader.File[index] == nil {
-		return "", fmt.Errorf("%w: file at given index does not exist in the given archive", model.ErrNotFound)
+		return "", fmt.Errorf("sArchive - %w: file at given index does not exist in the given archive", model.ErrNotFound)
 	}
 	indexedFileReader, err := reader.File[index].Open()
 	if err != nil {
-		return "", fmt.Errorf("failed to open file at given index in archive: %w", err)
+		return "", fmt.Errorf("sArchive - failed to open file at given index in archive: %w", err)
 	}
 	defer indexedFileReader.Close()
 

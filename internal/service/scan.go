@@ -31,7 +31,7 @@ func NewServiceScanner(sImage ServiceImage, sArchive ServiceArchive) ServiceScan
 func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult, error) {
 	files, err := os.ReadDir(libraryPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read library root folder: %w", err)
+		return nil, fmt.Errorf("sScan - failed to read library root folder: %w", err)
 	}
 
 	// Filter for titles
@@ -64,7 +64,7 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 		titleName := titleFolder.Name()
 		width, height, err := s.scanTitleCover(filepath.Join(libraryPath, titleName))
 		if err != nil {
-			zap.L().Error("failed to scan title cover", zap.Error(err))
+			zap.L().Error("sScan - failed to scan title cover", zap.Error(err))
 		}
 		title := titleByTitleName[titleFolder.Name()]
 		title.CoverWidth = width
@@ -90,7 +90,7 @@ func (s *serviceScanner) scanTitleCover(titleFolderPath string) (int, int, error
 	titleCoverPath := filepath.Join(titleFolderPath, "poster.jpg")
 	titleCoverFile, err := os.Open(titleCoverPath)
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to open cover file: %w", err)
+		return 0, 0, fmt.Errorf("sScan - failed to open cover file: %w", err)
 	}
 
 	return s.serviceImage.GetDimensions(titleCoverFile)
@@ -99,7 +99,7 @@ func (s *serviceScanner) scanTitleCover(titleFolderPath string) (int, int, error
 func (s *serviceScanner) scanTitleFolder(titleFolderPath string) []*model.Book {
 	files, err := os.ReadDir(titleFolderPath)
 	if err != nil {
-		zap.L().Error("failed to read title folder", zap.Error(err))
+		zap.L().Error("sScan - failed to read title folder", zap.Error(err))
 		return nil
 	}
 

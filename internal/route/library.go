@@ -3,6 +3,7 @@ package route
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -11,6 +12,7 @@ import (
 	"github.com/imouto1994/yume/internal/infra/sqlite"
 	"github.com/imouto1994/yume/internal/model"
 	"github.com/imouto1994/yume/internal/service"
+	"go.uber.org/zap"
 )
 
 type HandlerLibrary struct {
@@ -110,9 +112,22 @@ func (h *HandlerLibrary) handleDeleteLibrary() http.HandlerFunc {
 		ctx := r.Context()
 		libraryID := chi.URLParam(r, "libraryID")
 
-		err := h.serviceLibrary.DeleteLibrary(ctx, h.db, libraryID)
+		tx, err := h.db.BeginTxx(ctx, nil)
 		if err != nil {
+			httpServer.RespondInternalServerError(w, "failed to delete library", fmt.Errorf("failed to begin transaction: %w", err))
+			return
+		}
+
+		err = h.serviceLibrary.DeleteLibraryByID(ctx, tx, libraryID)
+		if err != nil {
+			tx.Rollback()
 			httpServer.RespondInternalServerError(w, "failed to delete library", err)
+			return
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			httpServer.RespondInternalServerError(w, "failed to delete library", fmt.Errorf("failed to commit transaction: %w", err))
 			return
 		}
 
@@ -134,7 +149,23 @@ func (h *HandlerLibrary) handleScanLibrary() http.HandlerFunc {
 			return
 		}
 
-		go h.serviceLibrary.ScanLibrary(context.Background(), h.db, library)
+		go func() {
+			ctx := context.Background()
+			tx, err := h.db.BeginTxx(ctx, nil)
+			if err != nil {
+				zap.L().Error("failed to begin transaction for scanning library", zap.Error(err))
+				return
+			}
+			err = h.serviceLibrary.ScanLibrary(ctx, tx, library)
+			if err != nil {
+				tx.Rollback()
+				return
+			}
+			err = tx.Commit()
+			if err != nil {
+				zap.L().Error("failed to commit transaction for scanning library", zap.Error(err))
+			}
+		}()
 
 		resp := response{}
 		httpServer.RespondJSON(w, 200, resp)

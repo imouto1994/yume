@@ -22,7 +22,7 @@ func NewServiceImage() ServiceImage {
 func (s *serviceImage) GetDimensions(r io.Reader) (int, int, error) {
 	imageConfig, _, err := image.DecodeConfig(r)
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to decode image: %w", err)
+		return 0, 0, fmt.Errorf("sImage - failed to decode image: %w", err)
 	}
 
 	return imageConfig.Width, imageConfig.Height, nil

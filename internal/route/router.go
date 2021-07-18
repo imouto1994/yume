@@ -25,7 +25,7 @@ func CreateRouter(cfg *config.Config, db sqlite.DB, v *validator.Validate) http.
 	serviceArchive := service.NewServiceArchive()
 	serviceScanner := service.NewServiceScanner(serviceImage, serviceArchive)
 	serviceBook := service.NewServiceBook(repositoryBook, repositoryPage, serviceArchive, serviceImage)
-	serviceTitle := service.NewServiceTitle(repositoryTitle)
+	serviceTitle := service.NewServiceTitle(repositoryTitle, serviceBook)
 	serviceLibrary := service.NewServiceLibrary(repositoryLibrary, serviceScanner, serviceTitle, serviceBook)
 
 	// Initialize handlers
