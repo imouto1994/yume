@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/imouto1994/yume/internal/infra/sqlite"
@@ -44,9 +43,7 @@ func (r *repositoryPage) FindAllByBookID(ctx context.Context, dbOps sqlite.DBOps
 	pages := []*model.Page{}
 
 	err := dbOps.SelectContext(ctx, &pages, query, bookID)
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("rPage - %w: no matched rows with specific BOOK_ID from table PAGE", model.ErrNotFound)
-	} else if err != nil {
+	if err != nil {
 		return nil, fmt.Errorf("rPage -failed to find rows with specific BOOK_ID from table PAGE: %w", err)
 	}
 

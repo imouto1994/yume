@@ -106,7 +106,7 @@ func (s *serviceTitle) DeleteTitleByID(ctx context.Context, dbOps sqlite.DBOps, 
 	}
 	err = s.serviceBook.DeleteBooksByTitleID(ctx, dbOps, titleID)
 	if err != nil {
-		return fmt.Errorf("sTitle - failed to delete books of deleted title: %w", err)
+		return fmt.Errorf("sTitle - failed to use service Book to delete books of deleted title: %w", err)
 	}
 
 	return nil

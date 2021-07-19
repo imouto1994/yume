@@ -1,6 +1,7 @@
 package route
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -52,7 +53,7 @@ func (h *HandlerTitle) handleGetTitles() http.HandlerFunc {
 		if pageString != "" {
 			pageNumber, err = strconv.Atoi(pageString)
 			if err != nil {
-				httpServer.RespondBadRequest(w, "page number is invalid", err)
+				httpServer.RespondBadRequestError(w, "page number is invalid", fmt.Errorf("hTitle - page number query is not number for searching titles: %w", err))
 				return
 			}
 		}
@@ -62,7 +63,7 @@ func (h *HandlerTitle) handleGetTitles() http.HandlerFunc {
 		if sizeString != "" {
 			sizeNumber, err = strconv.Atoi(sizeString)
 			if err != nil {
-				httpServer.RespondBadRequest(w, "size number is invalid", err)
+				httpServer.RespondBadRequestError(w, "size number is invalid", fmt.Errorf("hTitle - size number query is not number for searching titles: %w", err))
 				return
 			}
 		}
@@ -77,7 +78,7 @@ func (h *HandlerTitle) handleGetTitles() http.HandlerFunc {
 
 		titles, err := h.serviceTitle.SearchTitles(ctx, h.db, titleQuery)
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "failed to search for titles with given query", err)
+			httpServer.RespondError(w, "failed to search for titles with given query", fmt.Errorf("hTitle - failed to use service Title to search titles: %w", err))
 			return
 		}
 
@@ -99,7 +100,7 @@ func (h *HandlerTitle) handleGetTitleBooks() http.HandlerFunc {
 
 		books, err := h.serviceBook.GetBooksByTitleID(ctx, h.db, titleID)
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "failed to get books for specitic title ID", err)
+			httpServer.RespondError(w, "failed to get books for specitic title ID", fmt.Errorf("hTitle - failed to use service Book to get books by title ID: %w", err))
 			return
 		}
 
@@ -117,7 +118,7 @@ func (h *HandlerTitle) handleGetTitleCoverFile() http.HandlerFunc {
 
 		err := h.serviceTitle.StreamTitleCoverByID(ctx, h.db, w, titleID)
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "failed to stream title cover", err)
+			httpServer.RespondError(w, "failed to stream title cover", fmt.Errorf("hTitle - failed to use service Title to stream title cover: %w", err))
 			return
 		}
 

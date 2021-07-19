@@ -79,9 +79,7 @@ func (r *repositoryTitle) Find(ctx context.Context, dbOps sqlite.DBOps, titleQue
 	titles := []*model.Title{}
 
 	err := dbOps.SelectContext(ctx, &titles, queryBuilder.String())
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("rTitle - %w: no matched rows with specific LIBRARY_ID from table TITLE", model.ErrNotFound)
-	} else if err != nil {
+	if err != nil {
 		return nil, fmt.Errorf("rTitle - failed to find rows with specific LIBRARY_ID from table TITLE: %w", err)
 	}
 
@@ -95,9 +93,7 @@ func (r *repositoryTitle) FindAllByLibraryID(ctx context.Context, dbOps sqlite.D
 	titles := []*model.Title{}
 
 	err := dbOps.SelectContext(ctx, &titles, query, libraryID)
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("rTitle - %w: no matched rows with specific LIBRARY_ID from table TITLE", model.ErrNotFound)
-	} else if err != nil {
+	if err != nil {
 		return nil, fmt.Errorf("rTitle - failed to find rows with specific LIBRARY_ID from table TITLE: %w", err)
 	}
 

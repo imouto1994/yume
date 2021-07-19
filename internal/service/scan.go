@@ -21,6 +21,17 @@ type serviceScanner struct {
 	serviceImage   ServiceImage
 }
 
+type titleCoverScanResult struct {
+	Name   string
+	Width  int
+	Height int
+}
+
+type titleBooksScanResult struct {
+	Name  string
+	Books []*model.Book
+}
+
 func NewServiceScanner(sImage ServiceImage, sArchive ServiceArchive) ServiceScanner {
 	return &serviceScanner{
 		serviceArchive: sArchive,
@@ -60,24 +71,51 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 	}
 
 	// Scan title covers
+	coverScanChannel := make(chan *titleCoverScanResult, len(titleFolders))
+
 	for _, titleFolder := range titleFolders {
 		titleName := titleFolder.Name()
-		width, height, err := s.scanTitleCover(filepath.Join(libraryPath, titleName))
-		if err != nil {
-			zap.L().Error("sScan - failed to scan title cover", zap.Error(err))
+		go func(name string) {
+			width, height, err := s.scanTitleCover(filepath.Join(libraryPath, name))
+			if err != nil {
+				zap.L().Error("sScan - failed to scan title cover", zap.Error(err))
+				coverScanChannel <- nil
+			}
+			coverScanChannel <- &titleCoverScanResult{
+				Name:   name,
+				Width:  width,
+				Height: height,
+			}
+		}(titleName)
+	}
+
+	for range titleFolders {
+		coverScanResult := <-coverScanChannel
+		if coverScanResult != nil {
+			title := titleByTitleName[coverScanResult.Name]
+			title.CoverWidth = coverScanResult.Width
+			title.CoverHeight = coverScanResult.Height
 		}
-		title := titleByTitleName[titleFolder.Name()]
-		title.CoverWidth = width
-		title.CoverHeight = height
 	}
 
 	// Scan books in each title
+	booksScanChannel := make(chan *titleBooksScanResult, len(titleFolders))
 	booksByTitleName := make(map[string][]*model.Book)
+
 	for _, titleFolder := range titleFolders {
-		books := s.scanTitleFolder(filepath.Join(libraryPath, titleFolder.Name()))
-		if books != nil {
-			booksByTitleName[titleFolder.Name()] = books
-		}
+		titleName := titleFolder.Name()
+		go func(name string) {
+			books := s.scanTitleFolder(filepath.Join(libraryPath, name))
+			booksScanChannel <- &titleBooksScanResult{
+				Name:  name,
+				Books: books,
+			}
+		}(titleName)
+	}
+
+	for range titleFolders {
+		booksScanResult := <-booksScanChannel
+		booksByTitleName[booksScanResult.Name] = booksScanResult.Books
 	}
 
 	return &model.ScanResult{

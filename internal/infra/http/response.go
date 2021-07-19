@@ -3,8 +3,10 @@ package http
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 
+	"github.com/imouto1994/yume/internal/model"
 	"go.uber.org/zap"
 )
 
@@ -25,12 +27,12 @@ func RespondJSON(writer http.ResponseWriter, statusCode int, body interface{}) {
 	_, _ = writer.Write(b.Bytes())
 }
 
-func RespondNotFound(writer http.ResponseWriter, message string, err error) {
+func RespondNotFoundError(writer http.ResponseWriter, message string, err error) {
 	zap.L().Warn(message, zap.Error(err))
 	RespondJSON(writer, http.StatusNotFound, &ErrorBody{Error: message})
 }
 
-func RespondBadRequest(writer http.ResponseWriter, message string, err error) {
+func RespondBadRequestError(writer http.ResponseWriter, message string, err error) {
 	zap.L().Warn(message, zap.Error(err))
 	RespondJSON(writer, http.StatusBadRequest, &ErrorBody{Error: message})
 }
@@ -38,4 +40,12 @@ func RespondBadRequest(writer http.ResponseWriter, message string, err error) {
 func RespondInternalServerError(writer http.ResponseWriter, message string, err error) {
 	zap.L().Error(message, zap.Error(err))
 	RespondJSON(writer, http.StatusInternalServerError, &ErrorBody{Error: message})
+}
+
+func RespondError(writer http.ResponseWriter, message string, err error) {
+	if errors.Is(err, model.ErrNotFound) {
+		RespondNotFoundError(writer, message, err)
+	} else {
+		RespondInternalServerError(writer, message, err)
+	}
 }

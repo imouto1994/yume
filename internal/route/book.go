@@ -1,6 +1,7 @@
 package route
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -44,7 +45,7 @@ func (h *HandlerBook) handleGetBookByID() http.HandlerFunc {
 
 		book, err := h.serviceBook.GetBookByID(ctx, h.db, bookID)
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "failed to get book", err)
+			httpServer.RespondError(w, "failed to get book", fmt.Errorf("hBook - failed to use service Book to get book by book ID: %w", err))
 			return
 		}
 
@@ -66,7 +67,7 @@ func (h *HandlerBook) handleGetBookPages() http.HandlerFunc {
 
 		pages, err := h.serviceBook.GetBookPages(ctx, h.db, bookID)
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "failed to get book pages", err)
+			httpServer.RespondError(w, "failed to get book pages", fmt.Errorf("hBook - failed to use service Book to get book pages: %w", err))
 			return
 		}
 
@@ -84,13 +85,13 @@ func (h *HandlerBook) handleGetBookPageFile() http.HandlerFunc {
 		pageNumberString := chi.URLParam(r, "pageNumber")
 		pageNumber, err := strconv.Atoi(pageNumberString)
 		if err != nil {
-			httpServer.RespondBadRequest(w, "page number is invalid", err)
+			httpServer.RespondBadRequestError(w, "page number is invalid", fmt.Errorf("hBook - page number param is not a number for streaming book page: %w", err))
 			return
 		}
 
 		extension, err := h.serviceBook.StreamBookPageByID(ctx, h.db, w, bookID, pageNumber)
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "failed to stream book page", err)
+			httpServer.RespondError(w, "failed to stream book page", fmt.Errorf("hBook - failed to use service Book to stream book page: %w", err))
 			return
 		}
 

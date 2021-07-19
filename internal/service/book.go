@@ -87,7 +87,7 @@ func (s *serviceBook) GetBookPages(ctx context.Context, dbOps sqlite.DBOps, book
 func (s *serviceBook) ScanBook(ctx context.Context, dbOps sqlite.DBOps, book *model.Book) error {
 	bookReader, err := s.serviceArchive.GetReader(book.URL)
 	if err != nil {
-		return fmt.Errorf("sBook - failed to open book archive: %w", err)
+		return fmt.Errorf("sBook - failed to use service Archive to open book: %w", err)
 	}
 	defer bookReader.Close()
 
@@ -109,7 +109,7 @@ func (s *serviceBook) ScanBook(ctx context.Context, dbOps sqlite.DBOps, book *mo
 		}
 		width, height, err := s.serviceImage.GetDimensions(fileReader)
 		if err != nil {
-			return fmt.Errorf("sBook - failed to get dimensions of book page: %w", err)
+			return fmt.Errorf("sBook - failed to use service Image to get dimensions of book page: %w", err)
 		}
 		page := &model.Page{
 			Index:     indexedPageFile.Index,
@@ -135,7 +135,12 @@ func (s *serviceBook) StreamBookPageByID(ctx context.Context, dbOps sqlite.DBOps
 		return "", fmt.Errorf("sBook - failed to find book with given ID in DB: %w", err)
 	}
 
-	return s.serviceArchive.StreamFileByIndex(writer, book.URL, pageNumber)
+	extension, err := s.serviceArchive.StreamFileByIndex(writer, book.URL, pageNumber)
+	if err != nil {
+		return "", fmt.Errorf("sBook - failed to use service Archive to stream file by index: %w", err)
+	}
+
+	return extension, nil
 }
 
 func (s *serviceBook) UpdateBookModifiedTime(ctx context.Context, dbOps sqlite.DBOps, bookID string, modTime string) error {

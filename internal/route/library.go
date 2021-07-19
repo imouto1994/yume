@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator"
@@ -56,13 +57,13 @@ func (h *HandlerLibrary) handleCreateLibrary() http.HandlerFunc {
 		var body request
 		err := json.NewDecoder(r.Body).Decode(&body)
 		if err != nil {
-			httpServer.RespondBadRequest(w, "request body is not in JSON format", err)
+			httpServer.RespondBadRequestError(w, "request body is not in JSON format", fmt.Errorf("hLibrary - request body is not in JSON format for creating library: %w ", err))
 			return
 		}
 
 		err = h.validate.Struct(body)
 		if err != nil {
-			httpServer.RespondBadRequest(w, "request body is invalid", err)
+			httpServer.RespondBadRequestError(w, "request body is invalid", fmt.Errorf("hLibrary - request JSON body is not valid for creating library: %w ", err))
 			return
 		}
 
@@ -73,7 +74,7 @@ func (h *HandlerLibrary) handleCreateLibrary() http.HandlerFunc {
 
 		err = h.serviceLibrary.CreateLibrary(ctx, h.db, newLibrary)
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "failed to create library", err)
+			httpServer.RespondError(w, "failed to create library", fmt.Errorf("hLibrary - failed to use service Library to create library: %w", err))
 			return
 		}
 
@@ -94,7 +95,7 @@ func (h *HandlerLibrary) handleGetLibraries() http.HandlerFunc {
 
 		libraries, err := h.serviceLibrary.GetLibraries(ctx, h.db)
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "failed to get libraries", err)
+			httpServer.RespondError(w, "failed to get libraries", fmt.Errorf("hLibrary - failed to user service Library to get libraries: %w", err))
 			return
 		}
 
@@ -114,20 +115,20 @@ func (h *HandlerLibrary) handleDeleteLibrary() http.HandlerFunc {
 
 		tx, err := h.db.BeginTxx(ctx, nil)
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "failed to delete library", fmt.Errorf("failed to begin transaction: %w", err))
+			httpServer.RespondInternalServerError(w, "failed to delete library", fmt.Errorf("hLibrary - failed to begin SQL transaction for deleting library: %w", err))
 			return
 		}
 
 		err = h.serviceLibrary.DeleteLibraryByID(ctx, tx, libraryID)
 		if err != nil {
 			tx.Rollback()
-			httpServer.RespondInternalServerError(w, "failed to delete library", err)
+			httpServer.RespondError(w, "failed to delete library", fmt.Errorf("hLibrary - failed to user service Library to delete library: %w", err))
 			return
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			httpServer.RespondInternalServerError(w, "failed to delete library", fmt.Errorf("failed to commit transaction: %w", err))
+			httpServer.RespondInternalServerError(w, "failed to delete library", fmt.Errorf("hLibrary - failed to commit SQL transaction for deleting library: %w", err))
 			return
 		}
 
@@ -145,15 +146,16 @@ func (h *HandlerLibrary) handleScanLibrary() http.HandlerFunc {
 
 		library, err := h.serviceLibrary.GetLibraryByID(ctx, h.db, libraryID)
 		if err != nil {
-			httpServer.RespondBadRequest(w, "failed to get library", err)
+			httpServer.RespondError(w, "failed to get library", err)
 			return
 		}
 
 		go func() {
+			start := time.Now()
 			ctx := context.Background()
 			tx, err := h.db.BeginTxx(ctx, nil)
 			if err != nil {
-				zap.L().Error("failed to begin transaction for scanning library", zap.Error(err))
+				zap.L().Error("hLibrary - failed to begin SQL transaction for scanning library", zap.Error(err))
 				return
 			}
 			err = h.serviceLibrary.ScanLibrary(ctx, tx, library)
@@ -163,8 +165,10 @@ func (h *HandlerLibrary) handleScanLibrary() http.HandlerFunc {
 			}
 			err = tx.Commit()
 			if err != nil {
-				zap.L().Error("failed to commit transaction for scanning library", zap.Error(err))
+				zap.L().Error("hLibrary - failed to commit SQL transaction for scanning library", zap.Error(err))
 			}
+			elapsed := time.Since(start)
+			zap.L().Info("hLibrary - successfully scanned and updated library", zap.Duration("duration", elapsed))
 		}()
 
 		resp := response{}
