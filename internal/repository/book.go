@@ -69,10 +69,8 @@ func (r *repositoryBook) FindAllByTitleID(ctx context.Context, dbOps sqlite.DBOp
 
 	books := []*model.Book{}
 
-	err := dbOps.GetContext(ctx, &books, query, titleID)
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("rBook - %w: no matched rows with specific TITLE_ID from table BOOK", model.ErrNotFound)
-	} else if err != nil {
+	err := dbOps.SelectContext(ctx, &books, query, titleID)
+	if err != nil {
 		return nil, fmt.Errorf("rBook - failed to find rows with specific TITLE_ID from table BOOK: %w", err)
 	}
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-playground/validator"
 
 	"github.com/imouto1994/yume/internal/infra/config"
@@ -37,6 +38,14 @@ func CreateRouter(cfg *config.Config, db sqlite.DB, v *validator.Validate) http.
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		ExposedHeaders:   []string{"*"},
+		AllowCredentials: true,
+		MaxAge:           86400,
+	}))
 
 	r.Mount("/api/library", handlerLibrary.InitializeRoutes())
 	r.Mount("/api/title", handlerTitle.InitializeRoutes())

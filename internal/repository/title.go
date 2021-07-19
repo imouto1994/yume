@@ -49,9 +49,9 @@ func (r *repositoryTitle) Insert(ctx context.Context, db sqlite.DBOps, title *mo
 }
 
 func (r *repositoryTitle) Find(ctx context.Context, dbOps sqlite.DBOps, titleQuery *model.TitleQuery) ([]*model.Title, error) {
-	orderBy := "NAME ASC"
-	if titleQuery.Sort == "created_at" {
-		orderBy = "CREATED_AT DESC"
+	orderBy := "CREATED_AT DESC"
+	if titleQuery.Sort == "name" {
+		orderBy = "NAME COLLATE NOCASE ASC"
 	}
 
 	// Build SQL query
@@ -61,10 +61,10 @@ func (r *repositoryTitle) Find(ctx context.Context, dbOps sqlite.DBOps, titleQue
 	if len(titleQuery.LibraryIDs) > 0 && titleQuery.Search != "" {
 		queryString := "SELECT * FROM TITLE " +
 			"WHERE LIBRARY_ID IN (?) AND NAME LIKE ? " +
-			"ORDER BY ? " +
+			fmt.Sprintf("ORDER BY %s ", orderBy) +
 			"LIMIT ? " +
 			"OFFSET ?"
-		query, args, err = sqlx.In(queryString, titleQuery.LibraryIDs, "%"+titleQuery.Search+"%", orderBy, titleQuery.Size, titleQuery.Page*titleQuery.Size)
+		query, args, err = sqlx.In(queryString, titleQuery.LibraryIDs, "%"+titleQuery.Search+"%", titleQuery.Size, titleQuery.Page*titleQuery.Size)
 		if err != nil {
 			return nil, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
 		}
@@ -72,10 +72,10 @@ func (r *repositoryTitle) Find(ctx context.Context, dbOps sqlite.DBOps, titleQue
 	} else if len(titleQuery.LibraryIDs) > 0 {
 		queryString := "SELECT * FROM TITLE " +
 			"WHERE LIBRARY_ID IN (?) " +
-			"ORDER BY ? " +
+			fmt.Sprintf("ORDER BY %s ", orderBy) +
 			"LIMIT ? " +
 			"OFFSET ?"
-		query, args, err = sqlx.In(queryString, titleQuery.LibraryIDs, orderBy, titleQuery.Size, titleQuery.Page*titleQuery.Size)
+		query, args, err = sqlx.In(queryString, titleQuery.LibraryIDs, titleQuery.Size, titleQuery.Page*titleQuery.Size)
 		if err != nil {
 			return nil, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
 		}
@@ -83,21 +83,20 @@ func (r *repositoryTitle) Find(ctx context.Context, dbOps sqlite.DBOps, titleQue
 	} else if titleQuery.Search != "" {
 		queryString := "SELECT * FROM TITLE " +
 			"WHERE NAME LIKE ? " +
-			"ORDER BY ? " +
+			fmt.Sprintf("ORDER BY %s ", orderBy) +
 			"LIMIT ? " +
 			"OFFSET ?"
-		query, args, err = sqlx.In(queryString, "%"+titleQuery.Search+"%", orderBy, titleQuery.Size, titleQuery.Page*titleQuery.Size)
+		query, args, err = sqlx.In(queryString, "%"+titleQuery.Search+"%", titleQuery.Size, titleQuery.Page*titleQuery.Size)
 		if err != nil {
 			return nil, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
 		}
 		query = dbOps.Rebind(query)
-		fmt.Println(query, args)
 	} else {
 		queryString := "SELECT * FROM TITLE " +
-			"ORDER BY ? " +
+			fmt.Sprintf("ORDER BY %s ", orderBy) +
 			"LIMIT ? " +
 			"OFFSET ?"
-		query, args, err = sqlx.In(queryString, orderBy, titleQuery.Size, titleQuery.Page*titleQuery.Size)
+		query, args, err = sqlx.In(queryString, titleQuery.Size, titleQuery.Page*titleQuery.Size)
 		if err != nil {
 			return nil, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
 		}

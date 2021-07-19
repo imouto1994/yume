@@ -47,10 +47,6 @@ func (h *HandlerLibrary) handleCreateLibrary() http.HandlerFunc {
 		Root string `json:"root" validate:"required"`
 	}
 
-	type response struct {
-		Library *model.Library `json:"library"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -78,10 +74,7 @@ func (h *HandlerLibrary) handleCreateLibrary() http.HandlerFunc {
 			return
 		}
 
-		resp := response{
-			Library: newLibrary,
-		}
-		httpServer.RespondJSON(w, 200, resp)
+		httpServer.RespondJSON(w, 200, newLibrary)
 	}
 }
 
@@ -99,10 +92,7 @@ func (h *HandlerLibrary) handleGetLibraries() http.HandlerFunc {
 			return
 		}
 
-		resp := response{
-			Libraries: libraries,
-		}
-		httpServer.RespondJSON(w, 200, resp)
+		httpServer.RespondJSON(w, 200, libraries)
 	}
 }
 

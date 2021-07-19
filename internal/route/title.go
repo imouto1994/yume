@@ -39,10 +39,6 @@ func (h *HandlerTitle) InitializeRoutes() http.Handler {
 }
 
 func (h *HandlerTitle) handleGetTitles() http.HandlerFunc {
-	type response struct {
-		Titles []*model.Title `json:"titles"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -84,16 +80,13 @@ func (h *HandlerTitle) handleGetTitles() http.HandlerFunc {
 			return
 		}
 
-		resp := response{
-			Titles: titles,
-		}
-		httpServer.RespondJSON(w, 200, resp)
+		httpServer.RespondJSON(w, 200, titles)
 	}
 }
 
 func (h *HandlerTitle) handleCountGetTitles() http.HandlerFunc {
 	type response struct {
-		Count int `json:"count"`
+		Value int `json:"value"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -112,17 +105,13 @@ func (h *HandlerTitle) handleCountGetTitles() http.HandlerFunc {
 		}
 
 		resp := response{
-			Count: count,
+			Value: count,
 		}
 		httpServer.RespondJSON(w, 200, resp)
 	}
 }
 
 func (h *HandlerTitle) handleGetTitleByID() http.HandlerFunc {
-	type response struct {
-		Title *model.Title `json:"title"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		titleID := chi.URLParam(r, "titleID")
@@ -133,18 +122,11 @@ func (h *HandlerTitle) handleGetTitleByID() http.HandlerFunc {
 			return
 		}
 
-		resp := response{
-			Title: title,
-		}
-		httpServer.RespondJSON(w, 200, resp)
+		httpServer.RespondJSON(w, 200, title)
 	}
 }
 
 func (h *HandlerTitle) handleGetTitleBooks() http.HandlerFunc {
-	type response struct {
-		Books []*model.Book `json:"books"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		titleID := chi.URLParam(r, "titleID")
@@ -155,10 +137,7 @@ func (h *HandlerTitle) handleGetTitleBooks() http.HandlerFunc {
 			return
 		}
 
-		resp := response{
-			Books: books,
-		}
-		httpServer.RespondJSON(w, 200, resp)
+		httpServer.RespondJSON(w, 200, books)
 	}
 }
 
@@ -167,13 +146,13 @@ func (h *HandlerTitle) handleGetTitleCoverFile() http.HandlerFunc {
 		ctx := r.Context()
 		titleID := chi.URLParam(r, "titleID")
 
+		w.Header().Set("Cache-Control", "max-age=86400,public")
 		err := h.serviceTitle.StreamTitleCoverByID(ctx, h.db, w, titleID)
 		if err != nil {
 			httpServer.RespondError(w, "failed to stream title cover", fmt.Errorf("hTitle - failed to use service Title to stream title cover: %w", err))
 			return
 		}
 
-		w.Header().Set("Content-Type", "image/jpeg")
 		w.WriteHeader(200)
 	}
 }

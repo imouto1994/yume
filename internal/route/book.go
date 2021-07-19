@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	httpServer "github.com/imouto1994/yume/internal/infra/http"
 	"github.com/imouto1994/yume/internal/infra/sqlite"
-	"github.com/imouto1994/yume/internal/model"
 	"github.com/imouto1994/yume/internal/service"
 )
 
@@ -35,10 +34,6 @@ func (h *HandlerBook) InitializeRoutes() http.Handler {
 }
 
 func (h *HandlerBook) handleGetBookByID() http.HandlerFunc {
-	type response struct {
-		Book *model.Book `json:"book"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		bookID := chi.URLParam(r, "bookID")
@@ -49,18 +44,11 @@ func (h *HandlerBook) handleGetBookByID() http.HandlerFunc {
 			return
 		}
 
-		resp := response{
-			Book: book,
-		}
-		httpServer.RespondJSON(w, 200, resp)
+		httpServer.RespondJSON(w, 200, book)
 	}
 }
 
 func (h *HandlerBook) handleGetBookPages() http.HandlerFunc {
-	type response struct {
-		Pages []*model.Page `json:"pages"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		bookID := chi.URLParam(r, "bookID")
@@ -71,10 +59,7 @@ func (h *HandlerBook) handleGetBookPages() http.HandlerFunc {
 			return
 		}
 
-		resp := response{
-			Pages: pages,
-		}
-		httpServer.RespondJSON(w, 200, resp)
+		httpServer.RespondJSON(w, 200, pages)
 	}
 }
 
@@ -89,16 +74,11 @@ func (h *HandlerBook) handleGetBookPageFile() http.HandlerFunc {
 			return
 		}
 
-		extension, err := h.serviceBook.StreamBookPageByID(ctx, h.db, w, bookID, pageNumber)
+		w.Header().Set("Cache-Control", "max-age=86400,public")
+		_, err = h.serviceBook.StreamBookPageByID(ctx, h.db, w, bookID, pageNumber)
 		if err != nil {
 			httpServer.RespondError(w, "failed to stream book page", fmt.Errorf("hBook - failed to use service Book to stream book page: %w", err))
 			return
-		}
-
-		if extension == ".png" {
-			w.Header().Set("Content-Type", "image/png")
-		} else {
-			w.Header().Set("Content-Type", "image/jpeg")
 		}
 
 		w.WriteHeader(200)
