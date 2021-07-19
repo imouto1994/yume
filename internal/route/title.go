@@ -31,6 +31,7 @@ func (h *HandlerTitle) InitializeRoutes() http.Handler {
 
 	r.Get("/", h.handleGetTitles())
 	r.Get("/count", h.handleCountGetTitles())
+	r.Get("/{titleID}", h.handleGetTitleByID())
 	r.Get("/{titleID}/cover", h.handleGetTitleCoverFile())
 	r.Get("/{titleID}/books", h.handleGetTitleBooks())
 
@@ -112,6 +113,28 @@ func (h *HandlerTitle) handleCountGetTitles() http.HandlerFunc {
 
 		resp := response{
 			Count: count,
+		}
+		httpServer.RespondJSON(w, 200, resp)
+	}
+}
+
+func (h *HandlerTitle) handleGetTitleByID() http.HandlerFunc {
+	type response struct {
+		Title *model.Title `json:"title"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		titleID := chi.URLParam(r, "titleID")
+
+		title, err := h.serviceTitle.GetTitleByID(ctx, h.db, titleID)
+		if err != nil {
+			httpServer.RespondError(w, "failed to get title", fmt.Errorf("hTitle - failed to use service Title to get title by title ID: %w", err))
+			return
+		}
+
+		resp := response{
+			Title: title,
 		}
 		httpServer.RespondJSON(w, 200, resp)
 	}
