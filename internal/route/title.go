@@ -30,6 +30,7 @@ func (h *HandlerTitle) InitializeRoutes() http.Handler {
 	r := chi.NewRouter()
 
 	r.Get("/", h.handleGetTitles())
+	r.Get("/count", h.handleCountGetTitles())
 	r.Get("/{titleID}/cover", h.handleGetTitleCoverFile())
 	r.Get("/{titleID}/books", h.handleGetTitleBooks())
 
@@ -84,6 +85,33 @@ func (h *HandlerTitle) handleGetTitles() http.HandlerFunc {
 
 		resp := response{
 			Titles: titles,
+		}
+		httpServer.RespondJSON(w, 200, resp)
+	}
+}
+
+func (h *HandlerTitle) handleCountGetTitles() http.HandlerFunc {
+	type response struct {
+		Count int `json:"count"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		queryValues := r.URL.Query()
+
+		titleQuery := &model.TitleQuery{
+			LibraryIDs: queryValues["library_id"],
+			Search:     queryValues.Get("search"),
+		}
+
+		count, err := h.serviceTitle.CountSearchTitles(ctx, h.db, titleQuery)
+		if err != nil {
+			httpServer.RespondError(w, "failed to count number of search results with given query", fmt.Errorf("hTitle - failed to use service Title to count for total search results: %w", err))
+			return
+		}
+
+		resp := response{
+			Count: count,
 		}
 		httpServer.RespondJSON(w, 200, resp)
 	}

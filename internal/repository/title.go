@@ -4,15 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 
 	"github.com/imouto1994/yume/internal/infra/sqlite"
 	"github.com/imouto1994/yume/internal/model"
+	"github.com/jmoiron/sqlx"
 )
 
 type RepositoryTitle interface {
 	Insert(context.Context, sqlite.DBOps, *model.Title) error
 	Find(context.Context, sqlite.DBOps, *model.TitleQuery) ([]*model.Title, error)
+	GetTotalFindResults(context.Context, sqlite.DBOps, *model.TitleQuery) (int, error)
 	FindAllByLibraryID(context.Context, sqlite.DBOps, string) ([]*model.Title, error)
 	FindByID(context.Context, sqlite.DBOps, string) (*model.Title, error)
 	UpdateModifiedTime(context.Context, sqlite.DBOps, string, string) error
@@ -48,42 +49,112 @@ func (r *repositoryTitle) Insert(ctx context.Context, db sqlite.DBOps, title *mo
 }
 
 func (r *repositoryTitle) Find(ctx context.Context, dbOps sqlite.DBOps, titleQuery *model.TitleQuery) ([]*model.Title, error) {
-	var whereClauseBuilder strings.Builder
-	if len(titleQuery.LibraryIDs) > 0 {
-		if whereClauseBuilder.Len() > 0 {
-			whereClauseBuilder.WriteString("AND ")
-		}
-		whereClauseBuilder.WriteString(fmt.Sprintf("LIBRARY_ID IN (%s) ", strings.Join(titleQuery.LibraryIDs, ",")))
-	}
-	if titleQuery.Search != "" {
-		if whereClauseBuilder.Len() > 0 {
-			whereClauseBuilder.WriteString("AND ")
-		}
-		whereClauseBuilder.WriteString(fmt.Sprintf("NAME LIKE '%%%s%%' ", titleQuery.Search))
-	}
-
-	orderByClause := "NAME ASC "
+	orderBy := "NAME ASC"
 	if titleQuery.Sort == "created_at" {
-		orderByClause = "CREATED_AT DESC "
+		orderBy = "CREATED_AT DESC"
 	}
 
-	var queryBuilder strings.Builder
-	queryBuilder.WriteString("SELECT * FROM TITLE ")
-	if whereClauseBuilder.Len() > 0 {
-		queryBuilder.WriteString(fmt.Sprintf("WHERE %s ", whereClauseBuilder.String()))
+	// Build SQL query
+	var query string
+	var args []interface{}
+	var err error
+	if len(titleQuery.LibraryIDs) > 0 && titleQuery.Search != "" {
+		queryString := "SELECT * FROM TITLE " +
+			"WHERE LIBRARY_ID IN (?) AND NAME LIKE ? " +
+			"ORDER BY ? " +
+			"LIMIT ? " +
+			"OFFSET ?"
+		query, args, err = sqlx.In(queryString, titleQuery.LibraryIDs, "%"+titleQuery.Search+"%", orderBy, titleQuery.Size, titleQuery.Page*titleQuery.Size)
+		if err != nil {
+			return nil, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
+		}
+		query = dbOps.Rebind(query)
+	} else if len(titleQuery.LibraryIDs) > 0 {
+		queryString := "SELECT * FROM TITLE " +
+			"WHERE LIBRARY_ID IN (?) " +
+			"ORDER BY ? " +
+			"LIMIT ? " +
+			"OFFSET ?"
+		query, args, err = sqlx.In(queryString, titleQuery.LibraryIDs, orderBy, titleQuery.Size, titleQuery.Page*titleQuery.Size)
+		if err != nil {
+			return nil, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
+		}
+		query = dbOps.Rebind(query)
+	} else if titleQuery.Search != "" {
+		queryString := "SELECT * FROM TITLE " +
+			"WHERE NAME LIKE ? " +
+			"ORDER BY ? " +
+			"LIMIT ? " +
+			"OFFSET ?"
+		query, args, err = sqlx.In(queryString, "%"+titleQuery.Search+"%", orderBy, titleQuery.Size, titleQuery.Page*titleQuery.Size)
+		if err != nil {
+			return nil, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
+		}
+		query = dbOps.Rebind(query)
+		fmt.Println(query, args)
+	} else {
+		queryString := "SELECT * FROM TITLE " +
+			"ORDER BY ? " +
+			"LIMIT ? " +
+			"OFFSET ?"
+		query, args, err = sqlx.In(queryString, orderBy, titleQuery.Size, titleQuery.Page*titleQuery.Size)
+		if err != nil {
+			return nil, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
+		}
+		query = dbOps.Rebind(query)
 	}
-	queryBuilder.WriteString(fmt.Sprintf("ORDER BY %s ", orderByClause))
-	queryBuilder.WriteString(fmt.Sprintf("LIMIT %d ", titleQuery.Size))
-	queryBuilder.WriteString(fmt.Sprintf("OFFSET %d ", titleQuery.Page*titleQuery.Size))
 
+	// Execute SQL Query
 	titles := []*model.Title{}
-
-	err := dbOps.SelectContext(ctx, &titles, queryBuilder.String())
+	err = dbOps.SelectContext(ctx, &titles, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("rTitle - failed to find rows with specific LIBRARY_ID from table TITLE: %w", err)
+		return nil, fmt.Errorf("rTitle - failed to find rows with specific query from table TITLE: %w", err)
 	}
 
 	return titles, nil
+}
+
+func (r *repositoryTitle) GetTotalFindResults(ctx context.Context, dbOps sqlite.DBOps, titleQuery *model.TitleQuery) (int, error) {
+	// Build SQL query
+	var query string
+	var args []interface{}
+	var err error
+	if len(titleQuery.LibraryIDs) > 0 && titleQuery.Search != "" {
+		queryString := "SELECT COUNT(*) FROM TITLE " +
+			"WHERE LIBRARY_ID IN (?) AND NAME LIKE ?"
+		query, args, err = sqlx.In(queryString, titleQuery.LibraryIDs, "%"+titleQuery.Search+"%")
+		if err != nil {
+			return 0, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
+		}
+		query = dbOps.Rebind(query)
+	} else if len(titleQuery.LibraryIDs) > 0 {
+		queryString := "SELECT COUNT(*) FROM TITLE " +
+			"WHERE LIBRARY_ID IN (?)"
+		query, args, err = sqlx.In(queryString, titleQuery.LibraryIDs)
+		if err != nil {
+			return 0, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
+		}
+		query = dbOps.Rebind(query)
+	} else if titleQuery.Search != "" {
+		queryString := "SELECT COUNT(*) FROM TITLE " +
+			"WHERE NAME LIKE ?"
+		query, args, err = sqlx.In(queryString, "%"+titleQuery.Search+"%")
+		if err != nil {
+			return 0, fmt.Errorf("rTitle - failed to bind variables for SQL query: %w", err)
+		}
+		query = dbOps.Rebind(query)
+	} else {
+		query = "SELECT COUNT(*) FROM TITLE"
+	}
+
+	// Execute SQL Query
+	var count int
+	err = dbOps.GetContext(ctx, &count, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("rTitle - failed to count rows with specific query from table TITLE: %w", err)
+	}
+
+	return count, nil
 }
 
 func (r *repositoryTitle) FindAllByLibraryID(ctx context.Context, dbOps sqlite.DBOps, libraryID string) ([]*model.Title, error) {

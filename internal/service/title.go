@@ -15,6 +15,7 @@ import (
 type ServiceTitle interface {
 	CreateTitle(context.Context, sqlite.DBOps, *model.Title) error
 	SearchTitles(context.Context, sqlite.DBOps, *model.TitleQuery) ([]*model.Title, error)
+	CountSearchTitles(context.Context, sqlite.DBOps, *model.TitleQuery) (int, error)
 	GetTitleByID(context.Context, sqlite.DBOps, string) (*model.Title, error)
 	GetTitlesByLibraryID(context.Context, sqlite.DBOps, string) ([]*model.Title, error)
 	StreamTitleCoverByID(context.Context, sqlite.DBOps, io.Writer, string) error
@@ -52,6 +53,15 @@ func (s *serviceTitle) SearchTitles(ctx context.Context, dbOps sqlite.DBOps, tit
 	}
 
 	return titles, nil
+}
+
+func (s *serviceTitle) CountSearchTitles(ctx context.Context, dbOps sqlite.DBOps, titleQuery *model.TitleQuery) (int, error) {
+	count, err := s.repositoryTitle.GetTotalFindResults(ctx, dbOps, titleQuery)
+	if err != nil {
+		return 0, fmt.Errorf("sTitle - failed to count total results of title search with given queries in DB: %w", err)
+	}
+
+	return count, nil
 }
 
 func (s *serviceTitle) GetTitleByID(ctx context.Context, dbOps sqlite.DBOps, titleID string) (*model.Title, error) {

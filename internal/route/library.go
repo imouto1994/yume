@@ -160,6 +160,7 @@ func (h *HandlerLibrary) handleScanLibrary() http.HandlerFunc {
 			}
 			err = h.serviceLibrary.ScanLibrary(ctx, tx, library)
 			if err != nil {
+				zap.L().Error("hLibrary - failed to scan and update library", zap.Error(err))
 				tx.Rollback()
 				return
 			}
