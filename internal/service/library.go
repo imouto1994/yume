@@ -186,25 +186,27 @@ func (s *serviceLibrary) ScanLibrary(ctx context.Context, dbOps sqlite.DBOps, li
 								}
 							}(dbBook)
 						} else {
-							book.LibraryID = library.ID
-							book.TitleID = dbTitle.ID
-
-							// Create new book entry in updated title
-							err = s.serviceBook.CreateBook(ctx, dbOps, book)
-							if err != nil {
-								return fmt.Errorf("sLibrary - failed to use service Book to create new book for updated title from scanned library: %w", err)
-							}
-
-							// Scan new book in updated title
-							go func(b *model.Book) {
-								err = s.serviceBook.ScanBook(ctx, dbOps, b)
-								if err != nil {
-									bookScanChannel <- fmt.Errorf("sLibrary - failed to use service Book to scan new book for updated title from scanned library: %w", err)
-								} else {
-									bookScanChannel <- nil
-								}
-							}(book)
+							bookScanChannel <- nil
 						}
+					} else {
+						book.LibraryID = library.ID
+						book.TitleID = dbTitle.ID
+
+						// Create new book entry in updated title
+						err = s.serviceBook.CreateBook(ctx, dbOps, book)
+						if err != nil {
+							return fmt.Errorf("sLibrary - failed to use service Book to create new book for updated title from scanned library: %w", err)
+						}
+
+						// Scan new book in updated title
+						go func(b *model.Book) {
+							err = s.serviceBook.ScanBook(ctx, dbOps, b)
+							if err != nil {
+								bookScanChannel <- fmt.Errorf("sLibrary - failed to use service Book to scan new book for updated title from scanned library: %w", err)
+							} else {
+								bookScanChannel <- nil
+							}
+						}(book)
 					}
 				}
 				zap.L().Info("sLibrary - successfully updated modified title", zap.String("name", title.Name))
