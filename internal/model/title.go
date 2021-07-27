@@ -8,6 +8,9 @@ type Title struct {
 	UpdatedAt   string `json:"updated_at" db:"UPDATED_AT"`
 	CoverWidth  int    `json:"cover_width" db:"COVER_WIDTH"`
 	CoverHeight int    `json:"cover_height" db:"COVER_HEIGHT"`
+	BookCount   int    `json:"book_count" db:"BOOK_COUNT"`
+	Uncensored  int    `json:"uncensored" db:"UNCENSORED"`
+	Langs       string `json:"langs" db:"LANGS"`
 	LibraryID   int64  `json:"library_id" db:"LIBRARY_ID"`
 }
 

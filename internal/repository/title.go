@@ -18,6 +18,9 @@ type RepositoryTitle interface {
 	FindByID(context.Context, sqlite.DBOps, string) (*model.Title, error)
 	UpdateModifiedTime(context.Context, sqlite.DBOps, string, string) error
 	UpdateCoverDimension(context.Context, sqlite.DBOps, string, int, int) error
+	UpdateBookCount(context.Context, sqlite.DBOps, string, int) error
+	UpdateUncensored(context.Context, sqlite.DBOps, string, int) error
+	UpdateLangs(context.Context, sqlite.DBOps, string, string) error
 	DeleteAllByLibraryID(context.Context, sqlite.DBOps, string) error
 	DeleteByID(context.Context, sqlite.DBOps, string) error
 }
@@ -30,10 +33,10 @@ func NewRepositoryTitle() RepositoryTitle {
 }
 
 func (r *repositoryTitle) Insert(ctx context.Context, db sqlite.DBOps, title *model.Title) error {
-	query := "INSERT INTO TITLE (NAME, URL, CREATED_AT, UPDATED_AT, COVER_WIDTH, COVER_HEIGHT, LIBRARY_ID) " +
-		"VALUES (?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO TITLE (NAME, URL, CREATED_AT, UPDATED_AT, COVER_WIDTH, COVER_HEIGHT, BOOK_COUNT, UNCENSORED, LANGS, LIBRARY_ID) " +
+		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
-	result, err := db.ExecContext(ctx, query, title.Name, title.URL, title.CreatedAt, title.UpdatedAt, title.CoverWidth, title.CoverHeight, title.LibraryID)
+	result, err := db.ExecContext(ctx, query, title.Name, title.URL, title.CreatedAt, title.UpdatedAt, title.CoverWidth, title.CoverHeight, title.BookCount, title.Uncensored, title.Langs, title.LibraryID)
 	if err != nil {
 		return fmt.Errorf("rTitle - failed to add new row to table TITLE: %w", err)
 	}
@@ -52,6 +55,8 @@ func (r *repositoryTitle) Find(ctx context.Context, dbOps sqlite.DBOps, titleQue
 	orderBy := "CREATED_AT DESC"
 	if titleQuery.Sort == "name" {
 		orderBy = "NAME COLLATE NOCASE ASC"
+	} else if titleQuery.Sort == "updated_at" {
+		orderBy = "UPDATED_AT DESC"
 	}
 
 	// Build SQL query
@@ -207,6 +212,45 @@ func (r *repositoryTitle) UpdateCoverDimension(ctx context.Context, dbOps sqlite
 	_, err := dbOps.ExecContext(ctx, query, coverWidth, coverHeight, titleID)
 	if err != nil {
 		return fmt.Errorf("rTitle - failed to update COVER_WIDTH & COVER_HEIGHT fields for row with given ID from table TITLE: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repositoryTitle) UpdateBookCount(ctx context.Context, dbOps sqlite.DBOps, titleID string, count int) error {
+	query := "UPDATE TITLE " +
+		"SET BOOK_COUNT = ? " +
+		"WHERE ID = ?"
+
+	_, err := dbOps.ExecContext(ctx, query, count, titleID)
+	if err != nil {
+		return fmt.Errorf("rTitle - failed to update BOOK_COUNT field for row with given ID from table TITLE: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repositoryTitle) UpdateUncensored(ctx context.Context, dbOps sqlite.DBOps, titleID string, uncensored int) error {
+	query := "UPDATE TITLE " +
+		"SET UNCENSORED = ? " +
+		"WHERE ID = ?"
+
+	_, err := dbOps.ExecContext(ctx, query, uncensored, titleID)
+	if err != nil {
+		return fmt.Errorf("rTitle - failed to update UNCENSORED field for row with given ID from table TITLE: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repositoryTitle) UpdateLangs(ctx context.Context, dbOps sqlite.DBOps, titleID string, langs string) error {
+	query := "UPDATE TITLE " +
+		"SET LANGS = ? " +
+		"WHERE ID = ?"
+
+	_, err := dbOps.ExecContext(ctx, query, langs, titleID)
+	if err != nil {
+		return fmt.Errorf("rTitle - failed to update LANGS field for row with given ID from table TITLE: %w", err)
 	}
 
 	return nil

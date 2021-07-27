@@ -121,11 +121,35 @@ func (s *serviceLibrary) ScanLibrary(ctx context.Context, dbOps sqlite.DBOps, li
 					return fmt.Errorf("sLibrary - failed to use service Title to update title's modified time from scanned library: %w", err)
 				}
 
-				// Update title's cover dimension
+				// Update title's cover dimension if necessary
 				if dbTitle.CoverHeight != title.CoverHeight || dbTitle.CoverWidth != title.CoverWidth {
 					err = s.serviceTitle.UpdateTitleCoverDimension(ctx, dbOps, fmt.Sprintf("%d", dbTitle.ID), title.CoverWidth, title.CoverHeight)
 					if err != nil {
 						return fmt.Errorf("sLibrary - failed to use service Title to update title's cover dimension from scanned library: %w", err)
+					}
+				}
+
+				// Update title's supported languages if necessary
+				if dbTitle.Langs != title.Langs {
+					err = s.serviceTitle.UpdateTitleLangs(ctx, dbOps, fmt.Sprintf("%d", dbTitle.ID), title.Langs)
+					if err != nil {
+						return fmt.Errorf("sLibrary - failed to use service Title to update title's supported langs from scanned library: %w", err)
+					}
+				}
+
+				// Update title's book count if necessary
+				if dbTitle.BookCount != title.BookCount {
+					err = s.serviceTitle.UpdateTitleBookCount(ctx, dbOps, fmt.Sprintf("%d", dbTitle.ID), title.BookCount)
+					if err != nil {
+						return fmt.Errorf("sLibrary - failed to use service Title to update title's book count from scanned library: %w", err)
+					}
+				}
+
+				// Update title's uncensored flag if necessary
+				if dbTitle.Uncensored != title.Uncensored {
+					err = s.serviceTitle.UpdateTitleUncensored(ctx, dbOps, fmt.Sprintf("%d", dbTitle.ID), title.Uncensored)
+					if err != nil {
+						return fmt.Errorf("sLibrary - failed to use service Title to update title's uncensored flag from scanned library: %w", err)
 					}
 				}
 

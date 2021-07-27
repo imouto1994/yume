@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -59,13 +60,25 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 	for _, titleFolder := range titleFolders {
 		titleName := titleFolder.Name()
 		folderInfo, _ := titleFolder.Info()
-		titleLastModifiedTime := folderInfo.ModTime().UTC().Format(time.RFC3339)
+		folderLastModifiedTime := folderInfo.ModTime().UTC().Format(time.RFC3339)
+		titleCreatedTime := folderLastModifiedTime
+
+		// Check for specified created time
+		openedCurlyLastIndex := strings.LastIndex(titleName, "{")
+		closedCurlyLastIndex := strings.LastIndex(titleName, "}")
+		if openedCurlyLastIndex != -1 && closedCurlyLastIndex != -1 && closedCurlyLastIndex > openedCurlyLastIndex {
+			specifiedTimeSubstring := titleName[(openedCurlyLastIndex + 1):closedCurlyLastIndex]
+			specifiedTime, err := time.Parse("2006-01-02", specifiedTimeSubstring)
+			if err == nil {
+				titleCreatedTime = specifiedTime.UTC().Format(time.RFC3339)
+			}
+		}
 
 		title := &model.Title{
 			Name:      titleName,
 			URL:       filepath.Join(libraryPath, titleName),
-			CreatedAt: titleLastModifiedTime,
-			UpdatedAt: titleLastModifiedTime,
+			CreatedAt: titleCreatedTime,
+			UpdatedAt: folderLastModifiedTime,
 		}
 		titleByTitleName[titleName] = title
 	}
@@ -115,6 +128,46 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 
 	for range titleFolders {
 		booksScanResult := <-booksScanChannel
+		titleBooks := booksScanResult.Books
+		title := titleByTitleName[booksScanResult.Name]
+
+		// Set number of books in title
+		title.BookCount = len(titleBooks)
+
+		// Set uncensored flag for title
+		for _, book := range titleBooks {
+			bookName := book.Name
+			if strings.HasSuffix(bookName, "]") {
+				openedBracketIndex := strings.LastIndex(bookName, "[")
+				if openedBracketIndex > 0 {
+					flag := bookName[(openedBracketIndex + 1):(len(bookName) - 1)]
+					if flag == "Uncensored" {
+						title.Uncensored = 1
+					}
+				}
+			}
+		}
+
+		// Scan title's supported languages
+		langsSet := make(map[string]bool)
+		for _, book := range titleBooks {
+			bookName := book.Name
+			openedBracketIndex := strings.Index(bookName, "[")
+			closedBracketIndex := strings.Index(bookName, "]")
+			if openedBracketIndex == 0 && closedBracketIndex != -1 {
+				lang := bookName[(openedBracketIndex + 1):closedBracketIndex]
+				langsSet[lang] = true
+			} else {
+				langsSet["jp"] = true
+			}
+		}
+		langs := []string{}
+		for lang := range langsSet {
+			langs = append(langs, lang)
+		}
+		sort.Strings(langs)
+		title.Langs = strings.Join(langs, ",")
+
 		booksByTitleName[booksScanResult.Name] = booksScanResult.Books
 	}
 

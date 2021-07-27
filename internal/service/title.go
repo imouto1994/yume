@@ -21,6 +21,9 @@ type ServiceTitle interface {
 	StreamTitleCoverByID(context.Context, sqlite.DBOps, io.Writer, string) error
 	UpdateTitleModifiedTime(context.Context, sqlite.DBOps, string, string) error
 	UpdateTitleCoverDimension(context.Context, sqlite.DBOps, string, int, int) error
+	UpdateTitleLangs(context.Context, sqlite.DBOps, string, string) error
+	UpdateTitleBookCount(context.Context, sqlite.DBOps, string, int) error
+	UpdateTitleUncensored(context.Context, sqlite.DBOps, string, int) error
 	DeleteTitlesByLibraryID(context.Context, sqlite.DBOps, string) error
 	DeleteTitleByID(context.Context, sqlite.DBOps, string) error
 }
@@ -95,6 +98,33 @@ func (s *serviceTitle) UpdateTitleCoverDimension(ctx context.Context, dbOps sqli
 	err := s.repositoryTitle.UpdateCoverDimension(ctx, dbOps, titleID, coverWidth, coverHeight)
 	if err != nil {
 		return fmt.Errorf("sTitle - failed to update title's cover dimension with given title ID in DB: %w", err)
+	}
+
+	return nil
+}
+
+func (s *serviceTitle) UpdateTitleLangs(ctx context.Context, dbOps sqlite.DBOps, titleID string, langs string) error {
+	err := s.repositoryTitle.UpdateLangs(ctx, dbOps, titleID, langs)
+	if err != nil {
+		return fmt.Errorf("sTitle - failed to update title's supported languages with given title ID in DB: %w", err)
+	}
+
+	return nil
+}
+
+func (s *serviceTitle) UpdateTitleBookCount(ctx context.Context, dbOps sqlite.DBOps, titleID string, count int) error {
+	err := s.repositoryTitle.UpdateBookCount(ctx, dbOps, titleID, count)
+	if err != nil {
+		return fmt.Errorf("sTitle - failed to update title's books count with given title ID in DB: %w", err)
+	}
+
+	return nil
+}
+
+func (s *serviceTitle) UpdateTitleUncensored(ctx context.Context, dbOps sqlite.DBOps, titleID string, uncensored int) error {
+	err := s.repositoryTitle.UpdateUncensored(ctx, dbOps, titleID, uncensored)
+	if err != nil {
+		return fmt.Errorf("sTitle - failed to update title's uncensored flag with given title ID in DB: %w", err)
 	}
 
 	return nil
