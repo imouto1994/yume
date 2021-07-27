@@ -141,7 +141,7 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 				openedBracketIndex := strings.LastIndex(bookName, "[")
 				if openedBracketIndex > 0 {
 					flag := bookName[(openedBracketIndex + 1):(len(bookName) - 1)]
-					if flag == "Uncensored" {
+					if flag == "Uncensored" || flag == "Decensored" {
 						title.Uncensored = 1
 					}
 				}
