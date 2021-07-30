@@ -34,10 +34,10 @@ func NewRepositoryTitle() RepositoryTitle {
 }
 
 func (r *repositoryTitle) Insert(ctx context.Context, db sqlite.DBOps, title *model.Title) error {
-	query := "INSERT INTO TITLE (NAME, URL, CREATED_AT, UPDATED_AT, COVER_WIDTH, COVER_HEIGHT, BOOK_COUNT, UNCENSORED, LANGS, LIBRARY_ID) " +
-		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO TITLE (NAME, URL, CREATED_AT, UPDATED_AT, COVER_WIDTH, COVER_HEIGHT, BOOK_COUNT, UNCENSORED, WAIFU2X, LANGS, LIBRARY_ID) " +
+		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
-	result, err := db.ExecContext(ctx, query, title.Name, title.URL, title.CreatedAt, title.UpdatedAt, title.CoverWidth, title.CoverHeight, title.BookCount, title.Uncensored, title.Langs, title.LibraryID)
+	result, err := db.ExecContext(ctx, query, title.Name, title.URL, title.CreatedAt, title.UpdatedAt, title.CoverWidth, title.CoverHeight, title.BookCount, title.Uncensored, title.Waifu2x, title.Langs, title.LibraryID)
 	if err != nil {
 		return fmt.Errorf("rTitle - failed to add new row to table TITLE: %w", err)
 	}
