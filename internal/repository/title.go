@@ -20,6 +20,7 @@ type RepositoryTitle interface {
 	UpdateCoverDimension(context.Context, sqlite.DBOps, string, int, int) error
 	UpdateBookCount(context.Context, sqlite.DBOps, string, int) error
 	UpdateUncensored(context.Context, sqlite.DBOps, string, int) error
+	UpdateWaifu2x(context.Context, sqlite.DBOps, string, int) error
 	UpdateLangs(context.Context, sqlite.DBOps, string, string) error
 	DeleteAllByLibraryID(context.Context, sqlite.DBOps, string) error
 	DeleteByID(context.Context, sqlite.DBOps, string) error
@@ -238,6 +239,19 @@ func (r *repositoryTitle) UpdateUncensored(ctx context.Context, dbOps sqlite.DBO
 	_, err := dbOps.ExecContext(ctx, query, uncensored, titleID)
 	if err != nil {
 		return fmt.Errorf("rTitle - failed to update UNCENSORED field for row with given ID from table TITLE: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repositoryTitle) UpdateWaifu2x(ctx context.Context, dbOps sqlite.DBOps, titleID string, waifu2x int) error {
+	query := "UPDATE TITLE " +
+		"SET WAIFU2X = ? " +
+		"WHERE ID = ?"
+
+	_, err := dbOps.ExecContext(ctx, query, waifu2x, titleID)
+	if err != nil {
+		return fmt.Errorf("rTitle - failed to update WAIFU2X field for row with given ID from table TITLE: %w", err)
 	}
 
 	return nil

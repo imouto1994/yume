@@ -145,11 +145,18 @@ func (s *serviceLibrary) ScanLibrary(ctx context.Context, dbOps sqlite.DBOps, li
 					}
 				}
 
-				// Update title's uncensored flag if necessary
+				// Update title's  flags if necessary
 				if dbTitle.Uncensored != title.Uncensored {
 					err = s.serviceTitle.UpdateTitleUncensored(ctx, dbOps, fmt.Sprintf("%d", dbTitle.ID), title.Uncensored)
 					if err != nil {
 						return fmt.Errorf("sLibrary - failed to use service Title to update title's uncensored flag from scanned library: %w", err)
+					}
+				}
+
+				if dbTitle.Waifu2x != title.Waifu2x {
+					err = s.serviceTitle.UpdateTitleWaifu2x(ctx, dbOps, fmt.Sprintf("%d", dbTitle.ID), title.Waifu2x)
+					if err != nil {
+						return fmt.Errorf("sLibrary - failed to use service Title to update title's waifu2x flag from scanned library: %w", err)
 					}
 				}
 

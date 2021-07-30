@@ -134,16 +134,21 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 		// Set number of books in title
 		title.BookCount = len(titleBooks)
 
-		// Set uncensored flag for title
+		// Set flags for title
 		for _, book := range titleBooks {
 			bookName := book.Name
 			if strings.HasSuffix(bookName, "]") {
 				openedBracketIndex := strings.LastIndex(bookName, "[")
 				if openedBracketIndex > 0 {
-					flag := bookName[(openedBracketIndex + 1):(len(bookName) - 1)]
-					if flag == "Uncensored" || flag == "Decensored" {
-						title.Uncensored = 1
+					flags := strings.Split(bookName[(openedBracketIndex+1):(len(bookName)-1)], ",")
+					for _, flag := range flags {
+						if flag == "Uncensored" || flag == "Decensored" {
+							title.Uncensored = 1
+						} else if flag == "Waifu2x" {
+							title.Waifu2x = 1
+						}
 					}
+
 				}
 			}
 		}
