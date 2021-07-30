@@ -142,6 +142,7 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 				if openedBracketIndex > 0 {
 					flags := strings.Split(bookName[(openedBracketIndex+1):(len(bookName)-1)], ",")
 					for _, flag := range flags {
+						flag = strings.TrimSpace(flag)
 						if flag == "Uncensored" || flag == "Decensored" {
 							title.Uncensored = 1
 						} else if flag == "Waifu2x" {
