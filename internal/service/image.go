@@ -6,6 +6,8 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
+
+	_ "golang.org/x/image/webp"
 )
 
 type ServiceImage interface {
