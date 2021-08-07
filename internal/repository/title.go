@@ -20,6 +20,7 @@ type RepositoryTitle interface {
 	UpdateCoverDimension(context.Context, sqlite.DBOps, string, int, int) error
 	UpdateBookCount(context.Context, sqlite.DBOps, string, int) error
 	UpdateUncensored(context.Context, sqlite.DBOps, string, int) error
+	UpdateWebp(context.Context, sqlite.DBOps, string, int) error
 	UpdateWaifu2x(context.Context, sqlite.DBOps, string, int) error
 	UpdateLangs(context.Context, sqlite.DBOps, string, string) error
 	DeleteAllByLibraryID(context.Context, sqlite.DBOps, string) error
@@ -34,10 +35,10 @@ func NewRepositoryTitle() RepositoryTitle {
 }
 
 func (r *repositoryTitle) Insert(ctx context.Context, db sqlite.DBOps, title *model.Title) error {
-	query := "INSERT INTO TITLE (NAME, URL, CREATED_AT, UPDATED_AT, COVER_WIDTH, COVER_HEIGHT, BOOK_COUNT, UNCENSORED, WAIFU2X, LANGS, LIBRARY_ID) " +
-		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO TITLE (NAME, URL, CREATED_AT, UPDATED_AT, COVER_WIDTH, COVER_HEIGHT, BOOK_COUNT, UNCENSORED, WEBP, WAIFU2X, LANGS, LIBRARY_ID) " +
+		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
-	result, err := db.ExecContext(ctx, query, title.Name, title.URL, title.CreatedAt, title.UpdatedAt, title.CoverWidth, title.CoverHeight, title.BookCount, title.Uncensored, title.Waifu2x, title.Langs, title.LibraryID)
+	result, err := db.ExecContext(ctx, query, title.Name, title.URL, title.CreatedAt, title.UpdatedAt, title.CoverWidth, title.CoverHeight, title.BookCount, title.Uncensored, title.Webp, title.Waifu2x, title.Langs, title.LibraryID)
 	if err != nil {
 		return fmt.Errorf("rTitle - failed to add new row to table TITLE: %w", err)
 	}
@@ -239,6 +240,19 @@ func (r *repositoryTitle) UpdateUncensored(ctx context.Context, dbOps sqlite.DBO
 	_, err := dbOps.ExecContext(ctx, query, uncensored, titleID)
 	if err != nil {
 		return fmt.Errorf("rTitle - failed to update UNCENSORED field for row with given ID from table TITLE: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repositoryTitle) UpdateWebp(ctx context.Context, dbOps sqlite.DBOps, titleID string, webp int) error {
+	query := "UPDATE TITLE " +
+		"SET WEBP = ? " +
+		"WHERE ID = ?"
+
+	_, err := dbOps.ExecContext(ctx, query, webp, titleID)
+	if err != nil {
+		return fmt.Errorf("rTitle - failed to update WEBP field for row with given ID from table TITLE: %w", err)
 	}
 
 	return nil

@@ -149,8 +149,11 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 							title.Waifu2x = 1
 						}
 					}
-
 				}
+			}
+
+			if strings.Contains(book.Format, "webp") {
+				title.Webp = 1
 			}
 		}
 
@@ -213,6 +216,7 @@ func (s *serviceScanner) scanTitleFolder(titleFolderPath string) []*model.Book {
 			bookFilePath := filepath.Join(titleFolderPath, fileName)
 			bookLastModifiedTime := fileInfo.ModTime().UTC().Format(time.RFC3339)
 			pageCount, _ := s.serviceArchive.GetFilesCount(bookFilePath)
+			extensions, _ := s.serviceArchive.GetFileExtensions(bookFilePath)
 
 			book := &model.Book{
 				Name:      strings.TrimSuffix(fileName, fileExtension),
@@ -220,6 +224,7 @@ func (s *serviceScanner) scanTitleFolder(titleFolderPath string) []*model.Book {
 				CreatedAt: bookLastModifiedTime,
 				UpdatedAt: bookLastModifiedTime,
 				PageCount: pageCount,
+				Format:    strings.Join(extensions, ", "),
 			}
 			books = append(books, book)
 		}

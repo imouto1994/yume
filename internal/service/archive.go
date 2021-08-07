@@ -12,6 +12,7 @@ import (
 type ServiceArchive interface {
 	GetReader(string) (*zip.ReadCloser, error)
 	GetFilesCount(string) (int, error)
+	GetFileExtensions(string) ([]string, error)
 	StreamFileByIndex(io.Writer, string, int) (string, error)
 }
 
@@ -34,6 +35,26 @@ func (s *serviceArchive) GetFilesCount(archivePath string) (int, error) {
 	defer reader.Close()
 
 	return len(reader.File), nil
+}
+
+func (s *serviceArchive) GetFileExtensions(archivePath string) ([]string, error) {
+	reader, err := zip.OpenReader(archivePath)
+	if err != nil {
+		return nil, fmt.Errorf("sArchive - failed to open archive: %w", err)
+	}
+	defer reader.Close()
+	extensionMap := make(map[string]bool)
+	for _, file := range reader.File {
+		fileName := file.Name
+		fileExtension := filepath.Ext(fileName)[1:]
+		extensionMap[fileExtension] = true
+	}
+	extensions := []string{}
+	for extension := range extensionMap {
+		extensions = append(extensions, extension)
+	}
+
+	return extensions, nil
 }
 
 func (s *serviceArchive) StreamFileByIndex(writer io.Writer, archivePath string, index int) (string, error) {

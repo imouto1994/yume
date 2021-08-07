@@ -25,6 +25,7 @@ type ServiceTitle interface {
 	UpdateTitleBookCount(context.Context, sqlite.DBOps, string, int) error
 	UpdateTitleUncensored(context.Context, sqlite.DBOps, string, int) error
 	UpdateTitleWaifu2x(context.Context, sqlite.DBOps, string, int) error
+	UpdateTitleWebp(context.Context, sqlite.DBOps, string, int) error
 	DeleteTitlesByLibraryID(context.Context, sqlite.DBOps, string) error
 	DeleteTitleByID(context.Context, sqlite.DBOps, string) error
 }
@@ -135,6 +136,15 @@ func (s *serviceTitle) UpdateTitleWaifu2x(ctx context.Context, dbOps sqlite.DBOp
 	err := s.repositoryTitle.UpdateWaifu2x(ctx, dbOps, titleID, waifu2x)
 	if err != nil {
 		return fmt.Errorf("sTitle - failed to update title's waifu2x flag with given title ID in DB: %w", err)
+	}
+
+	return nil
+}
+
+func (s *serviceTitle) UpdateTitleWebp(ctx context.Context, dbOps sqlite.DBOps, titleID string, webp int) error {
+	err := s.repositoryTitle.UpdateWebp(ctx, dbOps, titleID, webp)
+	if err != nil {
+		return fmt.Errorf("sTitle - failed to update title's webp flag with given title ID in DB: %w", err)
 	}
 
 	return nil

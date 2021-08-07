@@ -7,6 +7,7 @@ type Book struct {
 	CreatedAt string `json:"created_at" db:"CREATED_AT"`
 	UpdatedAt string `json:"updated_at" db:"UPDATED_AT"`
 	PageCount int    `json:"page_count" db:"PAGE_COUNT"`
+	Format    string `json:"format" db:"FORMAT"`
 	TitleID   int64  `json:"title_id" db:"TITLE_ID"`
 	LibraryID int64  `json:"library_id" db:"LIBRARY_ID"`
 }

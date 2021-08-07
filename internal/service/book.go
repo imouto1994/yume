@@ -20,6 +20,7 @@ type ServiceBook interface {
 	StreamBookPageByID(context.Context, sqlite.DBOps, io.Writer, string, int) (string, error)
 	ScanBook(context.Context, sqlite.DBOps, *model.Book) error
 	UpdateBookModifiedTime(context.Context, sqlite.DBOps, string, string) error
+	UpdateBookFormat(context.Context, sqlite.DBOps, string, string) error
 	UpdateBookPageCount(context.Context, sqlite.DBOps, string, int) error
 	DeleteBookByID(context.Context, sqlite.DBOps, string) error
 	DeleteBooksByLibraryID(context.Context, sqlite.DBOps, string) error
@@ -147,6 +148,15 @@ func (s *serviceBook) UpdateBookModifiedTime(ctx context.Context, dbOps sqlite.D
 	err := s.repositoryBook.UpdateModifiedTime(ctx, dbOps, bookID, modTime)
 	if err != nil {
 		return fmt.Errorf("sBook - failed to update book's modified time with given book ID in DB: %w", err)
+	}
+
+	return nil
+}
+
+func (s *serviceBook) UpdateBookFormat(ctx context.Context, dbOps sqlite.DBOps, bookID string, format string) error {
+	err := s.repositoryBook.UpdateFormat(ctx, dbOps, bookID, format)
+	if err != nil {
+		return fmt.Errorf("sBook - failed to update book's format with given book ID in DB: %w", err)
 	}
 
 	return nil
