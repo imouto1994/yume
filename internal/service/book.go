@@ -17,35 +17,41 @@ type ServiceBook interface {
 	GetBooksByTitleID(context.Context, sqlite.DBOps, string) ([]*model.Book, error)
 	GetBookByID(context.Context, sqlite.DBOps, string) (*model.Book, error)
 	GetBookPages(context.Context, sqlite.DBOps, string) ([]*model.Page, error)
+	GetBookPreviews(context.Context, sqlite.DBOps, string) ([]*model.Preview, error)
 	StreamBookPageByID(context.Context, sqlite.DBOps, io.Writer, string, int) (string, error)
+	StreamBookPreviewByID(context.Context, sqlite.DBOps, io.Writer, string, int) (string, error)
 	ScanBook(context.Context, sqlite.DBOps, *model.Book) error
 	UpdateBookModifiedTime(context.Context, sqlite.DBOps, string, string) error
+	UpdateBookPreviewInfo(context.Context, sqlite.DBOps, string, *string, *string) error
 	UpdateBookFormat(context.Context, sqlite.DBOps, string, string) error
 	UpdateBookPageCount(context.Context, sqlite.DBOps, string, int) error
 	DeleteBookByID(context.Context, sqlite.DBOps, string) error
 	DeleteBooksByLibraryID(context.Context, sqlite.DBOps, string) error
 	DeleteBooksByTitleID(context.Context, sqlite.DBOps, string) error
 	DeleteBookPages(context.Context, sqlite.DBOps, string) error
+	DeleteBookPreviews(context.Context, sqlite.DBOps, string) error
 }
 
 type serviceBook struct {
-	repositoryBook repository.RepositoryBook
-	repositoryPage repository.RepositoryPage
-	serviceArchive ServiceArchive
-	serviceImage   ServiceImage
+	repositoryBook    repository.RepositoryBook
+	repositoryPage    repository.RepositoryPage
+	repositoryPreview repository.RepositoryPreview
+	serviceArchive    ServiceArchive
+	serviceImage      ServiceImage
 }
 
-type indexedBookPage struct {
+type indexedFile struct {
 	Index int
 	File  *zip.File
 }
 
-func NewServiceBook(rBook repository.RepositoryBook, rPage repository.RepositoryPage, sArchive ServiceArchive, sImage ServiceImage) ServiceBook {
+func NewServiceBook(rBook repository.RepositoryBook, rPage repository.RepositoryPage, rPreview repository.RepositoryPreview, sArchive ServiceArchive, sImage ServiceImage) ServiceBook {
 	return &serviceBook{
-		repositoryBook: rBook,
-		repositoryPage: rPage,
-		serviceArchive: sArchive,
-		serviceImage:   sImage,
+		repositoryBook:    rBook,
+		repositoryPage:    rPage,
+		repositoryPreview: rPreview,
+		serviceArchive:    sArchive,
+		serviceImage:      sImage,
 	}
 }
 
@@ -85,16 +91,25 @@ func (s *serviceBook) GetBookPages(ctx context.Context, dbOps sqlite.DBOps, book
 	return pages, nil
 }
 
+func (s *serviceBook) GetBookPreviews(ctx context.Context, dbOps sqlite.DBOps, bookID string) ([]*model.Preview, error) {
+	previews, err := s.repositoryPreview.FindAllByBookID(ctx, dbOps, bookID)
+	if err != nil {
+		return nil, fmt.Errorf("sBook - failed to find all previews of given book ID in DB: %w", err)
+	}
+
+	return previews, nil
+}
+
 func (s *serviceBook) ScanBook(ctx context.Context, dbOps sqlite.DBOps, book *model.Book) error {
-	bookReader, err := s.serviceArchive.GetReader(book.URL)
+	pagesReader, err := s.serviceArchive.GetReader(book.URL)
 	if err != nil {
 		return fmt.Errorf("sBook - failed to use service Archive to open book: %w", err)
 	}
-	defer bookReader.Close()
+	defer pagesReader.Close()
 
-	indexedPageFiles := make([]*indexedBookPage, len(bookReader.File))
-	for index, pageFile := range bookReader.File {
-		indexedPageFiles[index] = &indexedBookPage{
+	indexedPageFiles := make([]*indexedFile, len(pagesReader.File))
+	for index, pageFile := range pagesReader.File {
+		indexedPageFiles[index] = &indexedFile{
 			Index: index,
 			File:  pageFile,
 		}
@@ -127,16 +142,67 @@ func (s *serviceBook) ScanBook(ctx context.Context, dbOps sqlite.DBOps, book *mo
 		}
 	}
 
+	if book.PreviewURL != nil {
+		previewsReader, err := s.serviceArchive.GetReader(*book.PreviewURL)
+		if err != nil {
+			return fmt.Errorf("sBook - failed to use service Archive to open book previews file: %w", err)
+		}
+		defer previewsReader.Close()
+
+		indexedPreviewFiles := make([]*indexedFile, len(previewsReader.File))
+		for index, previewFile := range previewsReader.File {
+			indexedPreviewFiles[index] = &indexedFile{
+				Index: index,
+				File:  previewFile,
+			}
+		}
+		sort.Slice(indexedPreviewFiles, func(i, j int) bool {
+			return indexedPreviewFiles[i].File.Name < indexedPreviewFiles[j].File.Name
+		})
+
+		for number, indexedPreviewFile := range indexedPreviewFiles {
+			preview := &model.Preview{
+				Index:     indexedPreviewFile.Index,
+				Number:    number,
+				BookID:    book.ID,
+				TitleID:   book.TitleID,
+				LibraryID: book.LibraryID,
+			}
+			err = s.repositoryPreview.Insert(ctx, dbOps, preview)
+			if err != nil {
+				return fmt.Errorf("sBook - failed to create preview in DB: %w", err)
+			}
+		}
+	}
+
 	return nil
 }
 
-func (s *serviceBook) StreamBookPageByID(ctx context.Context, dbOps sqlite.DBOps, writer io.Writer, bookID string, pageNumber int) (string, error) {
+func (s *serviceBook) StreamBookPageByID(ctx context.Context, dbOps sqlite.DBOps, writer io.Writer, bookID string, pageIndex int) (string, error) {
 	book, err := s.repositoryBook.FindByID(ctx, dbOps, bookID)
 	if err != nil {
 		return "", fmt.Errorf("sBook - failed to find book with given ID in DB: %w", err)
 	}
 
-	extension, err := s.serviceArchive.StreamFileByIndex(writer, book.URL, pageNumber)
+	extension, err := s.serviceArchive.StreamFileByIndex(writer, book.URL, pageIndex)
+	if err != nil {
+		return "", fmt.Errorf("sBook - failed to use service Archive to stream file by index: %w", err)
+	}
+
+	return extension, nil
+}
+
+func (s *serviceBook) StreamBookPreviewByID(ctx context.Context, dbOps sqlite.DBOps, writer io.Writer, bookID string, pageIndex int) (string, error) {
+	book, err := s.repositoryBook.FindByID(ctx, dbOps, bookID)
+	if err != nil {
+		return "", fmt.Errorf("sBook - failed to find book with given ID in DB: %w", err)
+	}
+
+	if book.PreviewURL == nil {
+		return "", fmt.Errorf("sBook- %w: book does not have previews", model.ErrNotFound)
+	}
+
+	extension, err := s.serviceArchive.StreamFileByIndex(writer, *book.PreviewURL, pageIndex)
 	if err != nil {
 		return "", fmt.Errorf("sBook - failed to use service Archive to stream file by index: %w", err)
 	}
@@ -148,6 +214,15 @@ func (s *serviceBook) UpdateBookModifiedTime(ctx context.Context, dbOps sqlite.D
 	err := s.repositoryBook.UpdateModifiedTime(ctx, dbOps, bookID, modTime)
 	if err != nil {
 		return fmt.Errorf("sBook - failed to update book's modified time with given book ID in DB: %w", err)
+	}
+
+	return nil
+}
+
+func (s *serviceBook) UpdateBookPreviewInfo(ctx context.Context, dbOps sqlite.DBOps, bookID string, previewURL *string, previewUpdatedAt *string) error {
+	err := s.repositoryBook.UpdatePreview(ctx, dbOps, bookID, previewURL, previewUpdatedAt)
+	if err != nil {
+		return fmt.Errorf("sBook - failed to update book's preview info with given book ID in DB: %w", err)
 	}
 
 	return nil
@@ -180,6 +255,10 @@ func (s *serviceBook) DeleteBookByID(ctx context.Context, dbOps sqlite.DBOps, bo
 	if err != nil {
 		return fmt.Errorf("sBook - failed to delete book pages with given book ID in DB: %w", err)
 	}
+	err = s.repositoryPreview.DeleteAllByBookID(ctx, dbOps, bookID)
+	if err != nil {
+		return fmt.Errorf("sBook - failed to delete book previews with given book ID in DB: %w", err)
+	}
 
 	return nil
 }
@@ -192,6 +271,10 @@ func (s *serviceBook) DeleteBooksByTitleID(ctx context.Context, dbOps sqlite.DBO
 	err = s.repositoryPage.DeleteAllByTitleID(ctx, dbOps, titleID)
 	if err != nil {
 		return fmt.Errorf("sBook - failed to delete book pages with given title ID in DB: %w", err)
+	}
+	err = s.repositoryPreview.DeleteAllByTitleID(ctx, dbOps, titleID)
+	if err != nil {
+		return fmt.Errorf("sBook - failed to delete book previews with given title ID in DB: %w", err)
 	}
 
 	return nil
@@ -206,6 +289,10 @@ func (s *serviceBook) DeleteBooksByLibraryID(ctx context.Context, dbOps sqlite.D
 	if err != nil {
 		return fmt.Errorf("sBook - failed to delete book pages with given library ID in DB: %w", err)
 	}
+	err = s.repositoryPreview.DeleteAllByLibraryID(ctx, dbOps, libraryID)
+	if err != nil {
+		return fmt.Errorf("sBook - failed to delete book previews with given library ID in DB: %w", err)
+	}
 
 	return nil
 }
@@ -214,6 +301,15 @@ func (s *serviceBook) DeleteBookPages(ctx context.Context, dbOps sqlite.DBOps, b
 	err := s.repositoryPage.DeleteAllByBookID(ctx, dbOps, bookID)
 	if err != nil {
 		return fmt.Errorf("sBook - failed to delete book pages with given book ID in DB: %w", err)
+	}
+
+	return nil
+}
+
+func (s *serviceBook) DeleteBookPreviews(ctx context.Context, dbOps sqlite.DBOps, bookID string) error {
+	err := s.repositoryPreview.DeleteAllByBookID(ctx, dbOps, bookID)
+	if err != nil {
+		return fmt.Errorf("sBook - failed to delete book previews with given book ID in DB: %w", err)
 	}
 
 	return nil

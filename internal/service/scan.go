@@ -213,18 +213,31 @@ func (s *serviceScanner) scanTitleFolder(titleFolderPath string) []*model.Book {
 		fileName := file.Name()
 		fileExtension := filepath.Ext(fileName)
 		if fileExtension == ".cbz" {
+			fileNameWithoutExtension := strings.Replace(fileName, fileExtension, "", -1)
 			bookFilePath := filepath.Join(titleFolderPath, fileName)
 			bookLastModifiedTime := fileInfo.ModTime().UTC().Format(time.RFC3339)
 			pageCount, _ := s.serviceArchive.GetFilesCount(bookFilePath)
 			extensions, _ := s.serviceArchive.GetFileExtensions(bookFilePath)
 
+			var previewURL *string
+			var previewUpdatedAt *string
+			previewFilePath := filepath.Join(titleFolderPath, fmt.Sprintf("%s - Preview.zip", fileNameWithoutExtension))
+			previewFileInfo, err := os.Stat(previewFilePath)
+			if err == nil {
+				previewURL = &previewFilePath
+				previewFileModifiedTime := previewFileInfo.ModTime().UTC().Format(time.RFC3339)
+				previewUpdatedAt = &previewFileModifiedTime
+			}
+
 			book := &model.Book{
-				Name:      strings.TrimSuffix(fileName, fileExtension),
-				URL:       bookFilePath,
-				CreatedAt: bookLastModifiedTime,
-				UpdatedAt: bookLastModifiedTime,
-				PageCount: pageCount,
-				Format:    strings.Join(extensions, ", "),
+				Name:             strings.TrimSuffix(fileName, fileExtension),
+				URL:              bookFilePath,
+				CreatedAt:        bookLastModifiedTime,
+				UpdatedAt:        bookLastModifiedTime,
+				PreviewURL:       previewURL,
+				PreviewUpdatedAt: previewUpdatedAt,
+				PageCount:        pageCount,
+				Format:           strings.Join(extensions, ", "),
 			}
 			books = append(books, book)
 		}

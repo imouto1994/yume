@@ -20,12 +20,13 @@ func CreateRouter(cfg *config.Config, db sqlite.DB, v *validator.Validate) http.
 	repositoryTitle := repository.NewRepositoryTitle()
 	repositoryBook := repository.NewRepositoryBook()
 	repositoryPage := repository.NewRepositoryPage()
+	repositoryPreview := repository.NewRepositoryPreview()
 
 	// Initialize services
 	serviceImage := service.NewServiceImage()
 	serviceArchive := service.NewServiceArchive()
 	serviceScanner := service.NewServiceScanner(serviceImage, serviceArchive)
-	serviceBook := service.NewServiceBook(repositoryBook, repositoryPage, serviceArchive, serviceImage)
+	serviceBook := service.NewServiceBook(repositoryBook, repositoryPage, repositoryPreview, serviceArchive, serviceImage)
 	serviceTitle := service.NewServiceTitle(repositoryTitle, serviceBook)
 	serviceLibrary := service.NewServiceLibrary(repositoryLibrary, serviceScanner, serviceTitle, serviceBook)
 

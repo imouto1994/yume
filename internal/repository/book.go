@@ -14,6 +14,7 @@ type RepositoryBook interface {
 	FindByID(context.Context, sqlite.DBOps, string) (*model.Book, error)
 	FindAllByTitleID(context.Context, sqlite.DBOps, string) ([]*model.Book, error)
 	UpdateModifiedTime(context.Context, sqlite.DBOps, string, string) error
+	UpdatePreview(context.Context, sqlite.DBOps, string, *string, *string) error
 	UpdateFormat(context.Context, sqlite.DBOps, string, string) error
 	UpdatePageCount(context.Context, sqlite.DBOps, string, int) error
 	DeleteAllByTitleID(context.Context, sqlite.DBOps, string) error
@@ -29,10 +30,10 @@ func NewRepositoryBook() RepositoryBook {
 }
 
 func (r *repositoryBook) Insert(ctx context.Context, db sqlite.DBOps, book *model.Book) error {
-	query := "INSERT INTO BOOK (NAME, URL, CREATED_AT, UPDATED_AT, PAGE_COUNT, FORMAT, TITLE_ID, LIBRARY_ID) " +
-		"VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO BOOK (NAME, URL, CREATED_AT, UPDATED_AT, PREVIEW_URL, PREVIEW_UPDATED_AT, PAGE_COUNT, FORMAT, TITLE_ID, LIBRARY_ID) " +
+		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
-	result, err := db.ExecContext(ctx, query, book.Name, book.URL, book.CreatedAt, book.UpdatedAt, book.PageCount, book.Format, book.TitleID, book.LibraryID)
+	result, err := db.ExecContext(ctx, query, book.Name, book.URL, book.CreatedAt, book.UpdatedAt, book.PreviewURL, book.PreviewUpdatedAt, book.PageCount, book.Format, book.TitleID, book.LibraryID)
 	if err != nil {
 		return fmt.Errorf("rBook - failed to add new row to table BOOK: %w", err)
 	}
@@ -86,6 +87,19 @@ func (r *repositoryBook) UpdateModifiedTime(ctx context.Context, dbOps sqlite.DB
 	_, err := dbOps.ExecContext(ctx, query, modTime, bookID)
 	if err != nil {
 		return fmt.Errorf("rBook - failed to update UPDATED_AT field for row with given ID from table BOOK: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repositoryBook) UpdatePreview(ctx context.Context, dbOps sqlite.DBOps, bookID string, previewURL *string, previewUpdatedAt *string) error {
+	query := "UPDATE BOOK " +
+		"SET PREVIEW_URL = ?, PREVIEW_UPDATED_AT = ? " +
+		"WHERE ID = ?"
+
+	_, err := dbOps.ExecContext(ctx, query, previewURL, previewUpdatedAt, bookID)
+	if err != nil {
+		return fmt.Errorf("rBook - failed to update PREVIEW_URL & PREVIEW_UPDATED_AT fields for row with given ID from table BOOK: %w", err)
 	}
 
 	return nil

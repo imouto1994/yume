@@ -193,11 +193,17 @@ func (s *serviceLibrary) ScanLibrary(ctx context.Context, dbOps sqlite.DBOps, li
 
 				for _, book := range books {
 					if dbBook, ok := dbBookByBookName[book.Name]; ok {
-						if dbBook.UpdatedAt != book.UpdatedAt {
+						previewChanged := (dbBook.PreviewUpdatedAt == nil && book.PreviewUpdatedAt != nil) ||
+							(dbBook.PreviewUpdatedAt != nil && book.PreviewUpdatedAt == nil) ||
+							(dbBook.PreviewUpdatedAt != nil && book.PreviewUpdatedAt != nil && *dbBook.PreviewUpdatedAt != *book.PreviewUpdatedAt)
+
+						if dbBook.UpdatedAt != book.UpdatedAt || previewChanged {
 							// Update book's modified time
-							err = s.serviceBook.UpdateBookModifiedTime(ctx, dbOps, fmt.Sprintf("%d", dbBook.ID), book.UpdatedAt)
-							if err != nil {
-								return fmt.Errorf("sLibrary - failed to use service Book to update book's modified time in updated title from scanned library: %w", err)
+							if dbBook.UpdatedAt != book.UpdatedAt {
+								err = s.serviceBook.UpdateBookModifiedTime(ctx, dbOps, fmt.Sprintf("%d", dbBook.ID), book.UpdatedAt)
+								if err != nil {
+									return fmt.Errorf("sLibrary - failed to use service Book to update book's modified time in updated title from scanned library: %w", err)
+								}
 							}
 
 							// Update book's page count
@@ -216,10 +222,22 @@ func (s *serviceLibrary) ScanLibrary(ctx context.Context, dbOps sqlite.DBOps, li
 								}
 							}
 
+							// Update preview
+							if previewChanged {
+								err = s.serviceBook.UpdateBookPreviewInfo(ctx, dbOps, fmt.Sprintf("%d", dbBook.ID), book.PreviewURL, book.PreviewUpdatedAt)
+								if err != nil {
+									return fmt.Errorf("sLibrary - failed to use service Book to update book's preview info in updated title from scanned library: %w", err)
+								}
+							}
+
 							// Delete all pages from updated book in updated title
 							err = s.serviceBook.DeleteBookPages(ctx, dbOps, fmt.Sprintf("%d", dbBook.ID))
 							if err != nil {
 								return fmt.Errorf("sLibrary - failed to use service Book to delete pages of updated book in updated title from scanned library: %w", err)
+							}
+							err = s.serviceBook.DeleteBookPreviews(ctx, dbOps, fmt.Sprintf("%d", dbBook.ID))
+							if err != nil {
+								return fmt.Errorf("sLibrary - failed to use service Book to delete previews of updated book in updated title from scanned library: %w", err)
 							}
 
 							// Rescan all pages from updated book in updated title
