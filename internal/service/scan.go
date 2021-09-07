@@ -151,10 +151,6 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 					}
 				}
 			}
-
-			if strings.Contains(book.Format, "webp") {
-				title.Webp = 1
-			}
 		}
 
 		// Scan title's supported languages
@@ -187,7 +183,7 @@ func (s *serviceScanner) ScanLibraryRoot(libraryPath string) (*model.ScanResult,
 }
 
 func (s *serviceScanner) scanTitleCover(titleFolderPath string) (int, int, error) {
-	titleCoverPath := filepath.Join(titleFolderPath, "poster.jpg")
+	titleCoverPath := filepath.Join(titleFolderPath, "cover.webp")
 	titleCoverFile, err := os.Open(titleCoverPath)
 	if err != nil {
 		return 0, 0, fmt.Errorf("sScan - failed to open cover file: %w", err)
@@ -217,7 +213,6 @@ func (s *serviceScanner) scanTitleFolder(titleFolderPath string) []*model.Book {
 			bookFilePath := filepath.Join(titleFolderPath, fileName)
 			bookLastModifiedTime := fileInfo.ModTime().UTC().Format(time.RFC3339)
 			pageCount, _ := s.serviceArchive.GetFilesCount(bookFilePath)
-			extensions, _ := s.serviceArchive.GetFileExtensions(bookFilePath)
 
 			var previewURL *string
 			var previewUpdatedAt *string
@@ -237,7 +232,6 @@ func (s *serviceScanner) scanTitleFolder(titleFolderPath string) []*model.Book {
 				PreviewURL:       previewURL,
 				PreviewUpdatedAt: previewUpdatedAt,
 				PageCount:        pageCount,
-				Format:           strings.Join(extensions, ", "),
 			}
 			books = append(books, book)
 		}

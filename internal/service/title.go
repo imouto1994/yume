@@ -25,7 +25,6 @@ type ServiceTitle interface {
 	UpdateTitleBookCount(context.Context, sqlite.DBOps, string, int) error
 	UpdateTitleUncensored(context.Context, sqlite.DBOps, string, int) error
 	UpdateTitleWaifu2x(context.Context, sqlite.DBOps, string, int) error
-	UpdateTitleWebp(context.Context, sqlite.DBOps, string, int) error
 	DeleteTitlesByLibraryID(context.Context, sqlite.DBOps, string) error
 	DeleteTitleByID(context.Context, sqlite.DBOps, string) error
 }
@@ -141,15 +140,6 @@ func (s *serviceTitle) UpdateTitleWaifu2x(ctx context.Context, dbOps sqlite.DBOp
 	return nil
 }
 
-func (s *serviceTitle) UpdateTitleWebp(ctx context.Context, dbOps sqlite.DBOps, titleID string, webp int) error {
-	err := s.repositoryTitle.UpdateWebp(ctx, dbOps, titleID, webp)
-	if err != nil {
-		return fmt.Errorf("sTitle - failed to update title's webp flag with given title ID in DB: %w", err)
-	}
-
-	return nil
-}
-
 func (s *serviceTitle) DeleteTitlesByLibraryID(ctx context.Context, dbOps sqlite.DBOps, libraryID string) error {
 	err := s.repositoryTitle.DeleteAllByLibraryID(ctx, dbOps, libraryID)
 	if err != nil {
@@ -177,7 +167,7 @@ func (s *serviceTitle) StreamTitleCoverByID(ctx context.Context, dbOps sqlite.DB
 	if err != nil {
 		return fmt.Errorf("sTitle - failed to find title with given ID in DB: %w", err)
 	}
-	titleCoverPath := filepath.Join(title.URL, "poster.jpg")
+	titleCoverPath := filepath.Join(title.URL, "cover.webp")
 	titleCoverFile, err := os.Open(titleCoverPath)
 	if err != nil {
 		return fmt.Errorf("sTitle - failed to open cover file: %w", err)

@@ -1,11 +1,13 @@
 package route
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator"
 	httpServer "github.com/imouto1994/yume/internal/infra/http"
 	"github.com/imouto1994/yume/internal/infra/sqlite"
 	"github.com/imouto1994/yume/internal/model"
@@ -13,16 +15,20 @@ import (
 )
 
 type HandlerTitle struct {
-	db           sqlite.DB
-	serviceTitle service.ServiceTitle
-	serviceBook  service.ServiceBook
+	db              sqlite.DB
+	serviceTitle    service.ServiceTitle
+	serviceBook     service.ServiceBook
+	serviceSubtitle service.ServiceSubtitle
+	validate        *validator.Validate
 }
 
-func NewHandlerTitle(db sqlite.DB, sTitle service.ServiceTitle, sBook service.ServiceBook) *HandlerTitle {
+func NewHandlerTitle(db sqlite.DB, sTitle service.ServiceTitle, sBook service.ServiceBook, sSubtitle service.ServiceSubtitle, v *validator.Validate) *HandlerTitle {
 	return &HandlerTitle{
-		db:           db,
-		serviceTitle: sTitle,
-		serviceBook:  sBook,
+		db:              db,
+		serviceTitle:    sTitle,
+		serviceBook:     sBook,
+		serviceSubtitle: sSubtitle,
+		validate:        v,
 	}
 }
 
@@ -34,6 +40,7 @@ func (h *HandlerTitle) InitializeRoutes() http.Handler {
 	r.Get("/{titleID}", h.handleGetTitleByID())
 	r.Get("/{titleID}/cover", h.handleGetTitleCoverFile())
 	r.Get("/{titleID}/books", h.handleGetTitleBooks())
+	r.Post("/subtitle", h.handleCreateSubtitle())
 
 	return r
 }
@@ -154,5 +161,53 @@ func (h *HandlerTitle) handleGetTitleCoverFile() http.HandlerFunc {
 		}
 
 		w.WriteHeader(200)
+	}
+}
+
+func (h *HandlerTitle) handleCreateSubtitle() http.HandlerFunc {
+	type request struct {
+		Name            string `json:"name" validate:"required"`
+		Author          string `json:"author" validate:"required"`
+		PageStartNumber *int   `json:"page_start_number" validate:"required"`
+		PageEndNumber   *int   `json:"page_end_number" validate:"required"`
+		BookID          string `json:"book_id" validate:"required"`
+		LibraryID       string `json:"library_id" validate:"required"`
+	}
+
+	type response struct{}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		var body request
+		err := json.NewDecoder(r.Body).Decode(&body)
+		if err != nil {
+			httpServer.RespondBadRequestError(w, "request body is not in JSON format", fmt.Errorf("hTitle - request body is not in JSON format for creating subtitle: %w ", err))
+			return
+		}
+
+		err = h.validate.Struct(body)
+		if err != nil {
+			httpServer.RespondBadRequestError(w, "request body is invalid", fmt.Errorf("hTitle - request JSON body is not valid for creating subtitle: %w ", err))
+			return
+		}
+
+		newSubtitle := &model.Subtitle{
+			Name:            body.Name,
+			Author:          body.Author,
+			PageStartNumber: *body.PageStartNumber,
+			PageEndNumber:   *body.PageEndNumber,
+			BookID:          body.BookID,
+			LibraryID:       body.LibraryID,
+		}
+
+		err = h.serviceSubtitle.CreateSubtitle(ctx, h.db, newSubtitle)
+		if err != nil {
+			httpServer.RespondError(w, "failed to create library", fmt.Errorf("hTitle - failed to use service Subtitle to create subtitle: %w", err))
+			return
+		}
+
+		resp := response{}
+		httpServer.RespondJSON(w, 200, resp)
 	}
 }

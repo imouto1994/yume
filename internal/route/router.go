@@ -29,11 +29,12 @@ func CreateRouter(cfg *config.Config, db sqlite.DB, v *validator.Validate) http.
 	serviceBook := service.NewServiceBook(repositoryBook, repositoryPage, repositoryPreview, serviceArchive, serviceImage)
 	serviceTitle := service.NewServiceTitle(repositoryTitle, serviceBook)
 	serviceLibrary := service.NewServiceLibrary(repositoryLibrary, serviceScanner, serviceTitle, serviceBook)
+	serviceSubtitle := service.NewServiceSubtitle(serviceLibrary, serviceBook, serviceTitle)
 
 	// Initialize handlers
 	handlerLibrary := NewHandlerLibrary(db, v, serviceLibrary)
-	hanlderBook := NewHandlerBook(db, serviceBook)
-	handlerTitle := NewHandlerTitle(db, serviceTitle, serviceBook)
+	hanlderBook := NewHandlerBook(db, serviceBook, v)
+	handlerTitle := NewHandlerTitle(db, serviceTitle, serviceBook, serviceSubtitle, v)
 
 	r := chi.NewRouter()
 

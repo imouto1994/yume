@@ -160,13 +160,6 @@ func (s *serviceLibrary) ScanLibrary(ctx context.Context, dbOps sqlite.DBOps, li
 					}
 				}
 
-				if dbTitle.Webp != title.Webp {
-					err = s.serviceTitle.UpdateTitleWebp(ctx, dbOps, fmt.Sprintf("%d", dbTitle.ID), title.Webp)
-					if err != nil {
-						return fmt.Errorf("sLibrary - failed to use service Title to update title's webp flag from scanned library: %w", err)
-					}
-				}
-
 				dbBooks, err := s.serviceBook.GetBooksByTitleID(ctx, dbOps, fmt.Sprintf("%d", dbTitle.ID))
 				if err != nil {
 					return fmt.Errorf("sLibrary - failed to use service Book to get all current stored books in updated title from scanned library: %w", err)
@@ -211,14 +204,6 @@ func (s *serviceLibrary) ScanLibrary(ctx context.Context, dbOps sqlite.DBOps, li
 								err = s.serviceBook.UpdateBookPageCount(ctx, dbOps, fmt.Sprintf("%d", dbBook.ID), book.PageCount)
 								if err != nil {
 									return fmt.Errorf("sLibrary - failed to use service Book to update book's page count in updated title from scanned library: %w", err)
-								}
-							}
-
-							// Update book's format
-							if dbBook.Format != book.Format {
-								err = s.serviceBook.UpdateBookFormat(ctx, dbOps, fmt.Sprintf("%d", dbBook.ID), book.Format)
-								if err != nil {
-									return fmt.Errorf("sLibrary - failed to use service Book to update book's format in updated title from scanned library: %w", err)
 								}
 							}
 

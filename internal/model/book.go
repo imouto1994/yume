@@ -9,7 +9,6 @@ type Book struct {
 	PreviewURL       *string `json:"preview_url" db:"PREVIEW_URL"`
 	PreviewUpdatedAt *string `json:"preview_updated_at" db:"PREVIEW_UPDATED_AT"`
 	PageCount        int     `json:"page_count" db:"PAGE_COUNT"`
-	Format           string  `json:"format" db:"FORMAT"`
 	TitleID          int64   `json:"title_id" db:"TITLE_ID"`
 	LibraryID        int64   `json:"library_id" db:"LIBRARY_ID"`
 }

@@ -11,7 +11,6 @@ type Title struct {
 	BookCount   int    `json:"book_count" db:"BOOK_COUNT"`
 	Uncensored  int    `json:"uncensored" db:"UNCENSORED"`
 	Waifu2x     int    `json:"waifu2x" db:"WAIFU2X"`
-	Webp        int    `json:"webp" db:"WEBP"`
 	Langs       string `json:"langs" db:"LANGS"`
 	LibraryID   int64  `json:"library_id" db:"LIBRARY_ID"`
 }
